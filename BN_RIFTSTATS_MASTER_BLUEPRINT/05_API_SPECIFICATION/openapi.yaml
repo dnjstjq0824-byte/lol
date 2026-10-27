@@ -1,0 +1,845 @@
+openapi: 3.1.0
+info:
+  title: BN RiftStats Global League of Legends Analytics API
+  version: 1.0.0
+  description: >
+    Complete OpenAPI 3.1 specification for BN RiftStats covering all 26 API groups.
+    All Riot Games API calls are executed server-side via the Go Riot API Gateway.
+    Browser clients NEVER transmit or receive Riot API keys.
+servers:
+  - url: https://api.riftstats.bn.io/api/v1
+    description: Production API Gateway
+  - url: http://localhost:8080/api/v1
+    description: Local Development Sandbox
+tags:
+  - name: 01_Regions
+  - name: 02_AccountLookup
+  - name: 03_SummonerProfile
+  - name: 04_RankedStats
+  - name: 05_MatchHistory
+  - name: 06_MatchDetail
+  - name: 07_MatchTimeline
+  - name: 08_ChampionCatalog
+  - name: 09_ChampionStats
+  - name: 10_ChampionBuilds
+  - name: 11_ChampionRunes
+  - name: 12_ChampionItems
+  - name: 13_ChampionCounters
+  - name: 14_ChampionSynergy
+  - name: 15_Leaderboards
+  - name: 16_ChampionMastery
+  - name: 17_GameModes
+  - name: 18_Patches
+  - name: 19_Spectator
+  - name: 20_Users
+  - name: 21_Favorites
+  - name: 22_Auth
+  - name: 23_Admin
+  - name: 24_DataIngestion
+  - name: 25_Analytics
+  - name: 26_Monitoring
+paths:
+  /regions:
+    get:
+      tags: [01_Regions]
+      summary: List all 16 supported Riot platform regions and server statuses
+      operationId: listRegions
+      responses:
+        "200":
+          description: Supported regions list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegionListResponse"
+  /accounts/by-riot-id/{region}/{gameName}/{tagLine}:
+    get:
+      tags: [02_AccountLookup]
+      summary: Resolve Riot ID (gameName#tagLine) to canonical PUUID and account summary
+      operationId: resolveRiotId
+      parameters:
+        - $ref: "#/components/parameters/RegionParam"
+        - name: gameName
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: tagLine
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 16
+      responses:
+        "200":
+          description: Resolved Riot Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiotAccountDto"
+        "404":
+          $ref: "#/components/responses/ProblemNotFound"
+        "429":
+          $ref: "#/components/responses/ProblemRateLimited"
+  /search/autocomplete:
+    get:
+      tags: [02_AccountLookup]
+      summary: Instant autocomplete for Summoners (Riot ID) and Champions
+      operationId: searchAutocomplete
+      parameters:
+        - $ref: "#/components/parameters/RegionQueryParam"
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+      responses:
+        "200":
+          description: Autocomplete suggestions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutocompleteResponse"
+  /summoners/{region}/by-puuid/{puuid}:
+    get:
+      tags: [03_SummonerProfile]
+      summary: Fetch complete Summoner Profile header, level, icon, and season summary
+      operationId: getSummonerByPuuid
+      parameters:
+        - $ref: "#/components/parameters/RegionParam"
+        - $ref: "#/components/parameters/PuuidParam"
+      responses:
+        "200":
+          description: Complete Summoner Profile payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummonerProfileResponse"
+  /summoners/{region}/by-puuid/{puuid}/ranked:
+    get:
+      tags: [04_RankedStats]
+      summary: Fetch Ranked Solo/Duo, Ranked Flex, and historical LP tier graph snapshots
+      operationId: getSummonerRankedStats
+      parameters:
+        - $ref: "#/components/parameters/RegionParam"
+        - $ref: "#/components/parameters/PuuidParam"
+      responses:
+        "200":
+          description: Ranked stats and LP progression history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RankedStatsResponse"
+  /summoners/{region}/by-puuid/{puuid}/matches:
+    get:
+      tags: [05_MatchHistory]
+      summary: Fetch paginated match history stream with queue, champion, and patch filters
+      operationId: getSummonerMatches
+      parameters:
+        - $ref: "#/components/parameters/RegionParam"
+        - $ref: "#/components/parameters/PuuidParam"
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 40
+            default: 20
+        - name: queueId
+          in: query
+          schema:
+            type: integer
+        - name: championId
+          in: query
+          schema:
+            type: integer
+        - name: patch
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paginated match cards + 20-game aggregate summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchHistoryResponse"
+  /matches/{region}/{matchId}:
+    get:
+      tags: [06_MatchDetail]
+      summary: Fetch full 10-player scoreboard, team objectives, runes, items, and Rift Scores
+      operationId: getMatchDetail
+      parameters:
+        - $ref: "#/components/parameters/RegionParam"
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full match detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDetailResponse"
+  /matches/{region}/{matchId}/timeline:
+    get:
+      tags: [07_MatchTimeline]
+      summary: Fetch minute-by-minute gold/XP advantage curves, item purchase timeline, and skill order
+      operationId: getMatchTimeline
+      parameters:
+        - $ref: "#/components/parameters/RegionParam"
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Match timeline frames and build order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchTimelineResponse"
+  /champions:
+    get:
+      tags: [08_ChampionCatalog]
+      summary: List all champions with localized names, roles, classes, and Data Dragon asset URLs
+      operationId: listChampions
+      parameters:
+        - name: locale
+          in: query
+          schema:
+            type: string
+            default: ko_KR
+        - name: patch
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Champion catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChampionCatalogResponse"
+  /champions/tier-list:
+    get:
+      tags: [09_ChampionStats]
+      summary: Fetch role-filtered Champion Tier List (Win Rate, Pick Rate, Ban Rate, Tier, Top 3 Counters)
+      operationId: getChampionTierList
+      parameters:
+        - $ref: "#/components/parameters/RegionQueryParam"
+        - $ref: "#/components/parameters/TierBracketParam"
+        - $ref: "#/components/parameters/PatchQueryParam"
+        - $ref: "#/components/parameters/RoleQueryParam"
+        - name: queueId
+          in: query
+          schema:
+            type: integer
+            default: 420
+      responses:
+        "200":
+          description: Champion tier table and total analyzed sample count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChampionTierListResponse"
+  /champions/{championKey}/builds:
+    get:
+      tags: [10_ChampionBuilds]
+      summary: Fetch complete Champion Build summary (Runes, Spells, Skill Order, Starter/Boots/Core/Depth 4-6 Items)
+      operationId: getChampionBuilds
+      parameters:
+        - $ref: "#/components/parameters/ChampionKeyParam"
+        - $ref: "#/components/parameters/RegionQueryParam"
+        - $ref: "#/components/parameters/TierBracketParam"
+        - $ref: "#/components/parameters/PatchQueryParam"
+        - $ref: "#/components/parameters/RoleQueryParam"
+      responses:
+        "200":
+          description: Complete multi-option champion build recommendation payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChampionBuildResponse"
+  /champions/{championKey}/runes:
+    get:
+      tags: [11_ChampionRunes]
+      summary: Fetch detailed Rune tree combinations and per-slot perk win/pick rates
+      operationId: getChampionRunes
+      parameters:
+        - $ref: "#/components/parameters/ChampionKeyParam"
+        - $ref: "#/components/parameters/RegionQueryParam"
+        - $ref: "#/components/parameters/TierBracketParam"
+        - $ref: "#/components/parameters/PatchQueryParam"
+        - $ref: "#/components/parameters/RoleQueryParam"
+      responses:
+        "200":
+          description: Champion rune analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChampionBuildResponse"
+  /champions/{championKey}/items:
+    get:
+      tags: [12_ChampionItems]
+      summary: Fetch starter bundles, boots, 3-item cores, and 4th/5th/6th situational item statistics
+      operationId: getChampionItems
+      parameters:
+        - $ref: "#/components/parameters/ChampionKeyParam"
+        - $ref: "#/components/parameters/RegionQueryParam"
+        - $ref: "#/components/parameters/TierBracketParam"
+        - $ref: "#/components/parameters/PatchQueryParam"
+        - $ref: "#/components/parameters/RoleQueryParam"
+      responses:
+        "200":
+          description: Champion item analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChampionBuildResponse"
+  /champions/{championKey}/counters:
+    get:
+      tags: [13_ChampionCounters]
+      summary: Fetch direct lane counter matchups, win rates, and @15m Gold/XP/CS differentials
+      operationId: getChampionCounters
+      parameters:
+        - $ref: "#/components/parameters/ChampionKeyParam"
+        - $ref: "#/components/parameters/RegionQueryParam"
+        - $ref: "#/components/parameters/TierBracketParam"
+        - $ref: "#/components/parameters/PatchQueryParam"
+        - $ref: "#/components/parameters/RoleQueryParam"
+      responses:
+        "200":
+          description: Champion counter matchups
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChampionMatchupResponse"
+  /champions/{championKey}/synergies:
+    get:
+      tags: [14_ChampionSynergy]
+      summary: Fetch team duo synergies across allied roles with Synergy Delta and sample confidence
+      operationId: getChampionSynergies
+      parameters:
+        - $ref: "#/components/parameters/ChampionKeyParam"
+        - $ref: "#/components/parameters/RegionQueryParam"
+        - $ref: "#/components/parameters/TierBracketParam"
+        - $ref: "#/components/parameters/PatchQueryParam"
+        - $ref: "#/components/parameters/RoleQueryParam"
+      responses:
+        "200":
+          description: Champion duo synergies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChampionMatchupResponse"
+  /leaderboards/{region}:
+    get:
+      tags: [15_Leaderboards]
+      summary: Fetch regional Ranked Solo/Flex ladder, Champion Mastery leaderboard, or Summoner Level leaderboard
+      operationId: getLeaderboards
+      parameters:
+        - $ref: "#/components/parameters/RegionParam"
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [RANKED_SOLO_5x5, RANKED_FLEX_SR, CHAMPION_MASTERY, SUMMONER_LEVEL]
+            default: RANKED_SOLO_5x5
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        "200":
+          description: Paginated leaderboard entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardResponse"
+  /summoners/{region}/by-puuid/{puuid}/mastery:
+    get:
+      tags: [16_ChampionMastery]
+      summary: Fetch player's Champion Mastery levels, points, and tokens via CHAMPION-MASTERY-V4
+      operationId: getSummonerMastery
+      parameters:
+        - $ref: "#/components/parameters/RegionParam"
+        - $ref: "#/components/parameters/PuuidParam"
+      responses:
+        "200":
+          description: Champion mastery list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasteryListResponse"
+  /modes/{modeSlug}/stats:
+    get:
+      tags: [17_GameModes]
+      summary: Fetch game mode champion analytics (ARAM, Arena, URF, Nexus Blitz, Classic, Mayhem)
+      description: >
+        Strictly enforces Riot Policy: Arena Augment and Arena Item win rates are NEVER included.
+      operationId: getGameModeStats
+      parameters:
+        - name: modeSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/PatchQueryParam"
+      responses:
+        "200":
+          description: Mode-specific champion tier and build statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChampionTierListResponse"
+  /patches:
+    get:
+      tags: [18_Patches]
+      summary: List active and historical Riot patches, Data Dragon versions, and meta win-rate deltas
+      operationId: listPatches
+      responses:
+        "200":
+          description: Patch version list and meta summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatchListResponse"
+  /spectator/{region}/by-puuid/{puuid}:
+    get:
+      tags: [19_Spectator]
+      summary: Fetch active live game participant, champion, spell, and rune details via SPECTATOR-V5
+      description: >
+        Complies with Riot Game Integrity Policy: does not de-anonymize hidden streamer-mode players.
+      operationId: getActiveGame
+      parameters:
+        - $ref: "#/components/parameters/RegionParam"
+        - $ref: "#/components/parameters/PuuidParam"
+      responses:
+        "200":
+          description: Active game status (inGame=true with payload, or inGame=false)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpectatorResponse"
+  /users/me:
+    get:
+      tags: [20_Users]
+      summary: Get current authenticated platform user profile and preferences
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfileDto"
+  /favorites:
+    get:
+      tags: [21_Favorites]
+      summary: List user's bookmarked Summoners and Champions
+      operationId: listFavorites
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Favorites list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FavoriteListResponse"
+    post:
+      tags: [21_Favorites]
+      summary: Add a Summoner PUUID or Champion to user's favorites
+      operationId: createFavorite
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFavoriteRequest"
+      responses:
+        "201":
+          description: Favorite created
+  /auth/login:
+    post:
+      tags: [22_Auth]
+      summary: Authenticate platform user or initiate RSO OAuth flow
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Access token and session metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+  /admin/overview:
+    get:
+      tags: [23_Admin]
+      summary: Fetch Admin Console telemetry (Riot API rate limits, ingestion queue, DB health)
+      operationId: getAdminOverview
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Operational telemetry summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOverviewResponse"
+  /ingestion/summoners/{region}/{puuid}/refresh:
+    post:
+      tags: [24_DataIngestion]
+      summary: Trigger on-demand Summoner Profile and Match History refresh (120s cooldown enforced)
+      operationId: triggerSummonerRefresh
+      parameters:
+        - $ref: "#/components/parameters/RegionParam"
+        - $ref: "#/components/parameters/PuuidParam"
+      responses:
+        "202":
+          description: Refresh job queued or coalesced via Singleflight
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestionJobStatusDto"
+  /analytics/summary:
+    get:
+      tags: [25_Analytics]
+      summary: Fetch global sample size coverage, patch distribution, and confidence metrics
+      operationId: getAnalyticsSummary
+      responses:
+        "200":
+          description: Statistical sample coverage metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsCoverageResponse"
+  /monitoring/health:
+    get:
+      tags: [26_Monitoring]
+      summary: Liveness, Readiness, PostgreSQL, Redis, OpenSearch, and Riot Gateway health check
+      operationId: getSystemHealth
+      responses:
+        "200":
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatusResponse"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RegionParam:
+      name: region
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [KR, NA, EUW, EUNE, JP, BR, LAN, LAS, OCE, TR, RU, ME, SG, PH, TH, TW, VN]
+    RegionQueryParam:
+      name: region
+      in: query
+      schema:
+        type: string
+        enum: [GLOBAL, KR, NA, EUW, EUNE, JP, BR, LAN, LAS, OCE, TR, RU, ME, SG, PH, TH, TW, VN]
+        default: GLOBAL
+    PuuidParam:
+      name: puuid
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 40
+        maxLength: 96
+    ChampionKeyParam:
+      name: championKey
+      in: path
+      required: true
+      schema:
+        type: string
+    TierBracketParam:
+      name: tier
+      in: query
+      schema:
+        type: string
+        enum: [ALL, CHALLENGER, GRANDMASTER, MASTER_PLUS, MASTER, DIAMOND_PLUS, DIAMOND, EMERALD_PLUS, EMERALD, PLATINUM_PLUS, PLATINUM, GOLD_PLUS, GOLD, SILVER, BRONZE, IRON]
+        default: EMERALD_PLUS
+    PatchQueryParam:
+      name: patch
+      in: query
+      schema:
+        type: string
+        default: "16.21"
+    RoleQueryParam:
+      name: role
+      in: query
+      schema:
+        type: string
+        enum: [ALL, TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY]
+        default: ALL
+  responses:
+    ProblemNotFound:
+      description: Requested Riot resource or match was not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    ProblemRateLimited:
+      description: Rate limit cooldown active
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+  schemas:
+    ProblemDetails:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        retryAfterSeconds: { type: integer }
+    RegionListResponse:
+      type: object
+      properties:
+        regions:
+          type: array
+          items:
+            type: object
+            properties:
+              uiCode: { type: string }
+              platformId: { type: string }
+              regionalCluster: { type: string }
+              defaultTagLine: { type: string }
+              status: { type: string }
+    RiotAccountDto:
+      type: object
+      required: [puuid, gameName, tagLine, region]
+      properties:
+        puuid: { type: string }
+        gameName: { type: string }
+        tagLine: { type: string }
+        region: { type: string }
+    AutocompleteResponse:
+      type: object
+      properties:
+        summoners:
+          type: array
+          items:
+            $ref: "#/components/schemas/RiotAccountDto"
+        champions:
+          type: array
+          items:
+            type: object
+            properties:
+              championId: { type: integer }
+              championKey: { type: string }
+              name: { type: string }
+    SummonerProfileResponse:
+      type: object
+      properties:
+        account:
+          $ref: "#/components/schemas/RiotAccountDto"
+        summonerLevel: { type: integer }
+        profileIconId: { type: integer }
+        ladderRank: { type: integer }
+        topPercentile: { type: number }
+        lastUpdatedAt: { type: string, format: date-time }
+        nextRefreshAllowedAt: { type: string, format: date-time }
+    RankedStatsResponse:
+      type: object
+      properties:
+        soloQueue:
+          type: object
+          properties:
+            tier: { type: string }
+            division: { type: string }
+            lp: { type: integer }
+            wins: { type: integer }
+            losses: { type: integer }
+            winRate: { type: number }
+        flexQueue:
+          type: object
+        lpSnapshots:
+          type: array
+          items:
+            type: object
+    MatchHistoryResponse:
+      type: object
+      properties:
+        summary20Games:
+          type: object
+        matches:
+          type: array
+          items:
+            type: object
+        nextCursor: { type: string }
+    MatchDetailResponse:
+      type: object
+      properties:
+        matchId: { type: string }
+        patchVersion: { type: string }
+        gameDurationSec: { type: integer }
+        isRemake: { type: boolean }
+        teams: { type: array, items: { type: object } }
+        participants: { type: array, items: { type: object } }
+    MatchTimelineResponse:
+      type: object
+      properties:
+        matchId: { type: string }
+        frames: { type: array, items: { type: object } }
+    ChampionCatalogResponse:
+      type: object
+      properties:
+        patchVersion: { type: string }
+        ddragonVersion: { type: string }
+        champions: { type: array, items: { type: object } }
+    ChampionTierListResponse:
+      type: object
+      properties:
+        patchVersion: { type: string }
+        region: { type: string }
+        tierBracket: { type: string }
+        totalAnalyzedMatches: { type: integer }
+        lastUpdatedAt: { type: string, format: date-time }
+        entries:
+          type: array
+          items:
+            type: object
+            properties:
+              rank: { type: integer }
+              championId: { type: integer }
+              position: { type: string }
+              tierGrade: { type: string }
+              winRate: { type: number }
+              pickRate: { type: number }
+              banRate: { type: number }
+              sampleSize: { type: integer }
+              sampleQuality: { type: string }
+    ChampionBuildResponse:
+      type: object
+      properties:
+        championId: { type: integer }
+        position: { type: string }
+        patchVersion: { type: string }
+        runes: { type: array, items: { type: object } }
+        summonerSpells: { type: array, items: { type: object } }
+        skillOrders: { type: array, items: { type: object } }
+        starterItems: { type: array, items: { type: object } }
+        boots: { type: array, items: { type: object } }
+        coreBuilds: { type: array, items: { type: object } }
+        fourthItems: { type: array, items: { type: object } }
+        fifthItems: { type: array, items: { type: object } }
+        sixthItems: { type: array, items: { type: object } }
+    ChampionMatchupResponse:
+      type: object
+      properties:
+        championId: { type: integer }
+        position: { type: string }
+        matchups: { type: array, items: { type: object } }
+    LeaderboardResponse:
+      type: object
+      properties:
+        region: { type: string }
+        leaderboardType: { type: string }
+        entries: { type: array, items: { type: object } }
+    MasteryListResponse:
+      type: object
+      properties:
+        puuid: { type: string }
+        totalMasteryScore: { type: integer }
+        masteries: { type: array, items: { type: object } }
+    PatchListResponse:
+      type: object
+      properties:
+        currentPatch: { type: string }
+        patches: { type: array, items: { type: object } }
+    SpectatorResponse:
+      type: object
+      properties:
+        inGame: { type: boolean }
+        gameId: { type: integer }
+        gameMode: { type: string }
+        participants: { type: array, items: { type: object } }
+    UserProfileDto:
+      type: object
+      properties:
+        userId: { type: string }
+        email: { type: string }
+        displayName: { type: string }
+        role: { type: string }
+    FavoriteListResponse:
+      type: object
+      properties:
+        favorites: { type: array, items: { type: object } }
+    CreateFavoriteRequest:
+      type: object
+      required: [targetType, platformRegion]
+      properties:
+        targetType: { type: string, enum: [SUMMONER, CHAMPION] }
+        platformRegion: { type: string }
+        targetPuuid: { type: string }
+        targetChampionId: { type: integer }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    AuthTokenResponse:
+      type: object
+      properties:
+        accessToken: { type: string }
+        expiresIn: { type: integer }
+    AdminOverviewResponse:
+      type: object
+      properties:
+        rateLimitBuckets: { type: array, items: { type: object } }
+        ingestionQueueDepth: { type: integer }
+        sourceFreshness: { type: array, items: { type: object } }
+    IngestionJobStatusDto:
+      type: object
+      properties:
+        jobId: { type: string }
+        status: { type: string }
+        cooldownRemainingSec: { type: integer }
+    AnalyticsCoverageResponse:
+      type: object
+      properties:
+        currentPatch: { type: string }
+        totalMatchesIndexed: { type: integer }
+    HealthStatusResponse:
+      type: object
+      properties:
+        status: { type: string }
+        postgres: { type: string }
+        redis: { type: string }
+        opensearch: { type: string }

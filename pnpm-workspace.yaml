@@ -1,0 +1,6 @@
+packages:
+  - 'web'
+  - 'e2e'
+allowBuilds:
+  esbuild: true
+  vue-demi: true

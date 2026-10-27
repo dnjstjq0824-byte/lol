@@ -1,0 +1,12 @@
+Viewport_Width_Px,Device_Class,Grid_Columns,Container_Max_Width,Match_Card_Layout,Champion_Table_Behavior,Nav_Pattern,Ad_Slot_Dimensions,Min_Touch_Target_Px,Playwright_Project_Name
+320,Small Mobile (iPhone SE / Fold Cover),4 cols (gap 8px),100% (12px pad),Stacked 2-row compact card (10-player list hidden until expand),Sticky Rank+Champ column; horizontal scroll container with shadow cue,Bottom Sheet Drawer + Compact Search Icon,320x50,44x44,vp-320
+360,Standard Android Mobile,4 cols (gap 12px),100% (12px pad),Stacked 2-row compact card,Sticky Rank+Champ column; horizontal scroll container,Bottom Sheet Drawer + Compact Search,320x50,44x44,vp-360
+375,Standard iOS Mobile,4 cols (gap 12px),100% (16px pad),Stacked 2-row card with 24px item icons,Sticky Rank+Champ column; horizontal scroll container,Bottom Sheet Drawer + Search Bar,320x50,44x44,vp-375
+390,Modern iOS Mobile (iPhone 14/15/16),4 cols (gap 12px),100% (16px pad),Stacked 2-row card with 28px item icons,Sticky Rank+Champ column; horizontal scroll container,Bottom Sheet Drawer + Search Bar,320x50,44x44,vp-390
+430,Large Mobile (Pro Max / Plus),4 cols (gap 16px),100% (16px pad),Stacked 2-row card with full badges,Sticky Rank+Champ column; horizontal scroll container,Bottom Sheet Drawer + Search Bar,320x100,44x44,vp-430
+768,Tablet Portrait (iPad Mini/Air),8 cols (gap 16px),736px,Single-row condensed card (10-player list hidden on summary),Full table visible (Counters condensed to 3 icons),Collapsible Top Nav + Inline Search,728x90,44x44,vp-768
+1024,Tablet Landscape / Compact Laptop,12 cols (gap 16px),992px,2-Column Profile (280px Left Rail + 696px Match Stream),Full table visible,Full Horizontal Top Nav,728x90,36x36,vp-1024
+1280,Standard Laptop,12 cols (gap 20px),1200px,2-Column Profile (310px Left Rail + 870px Match Stream),Full table + Sample Size column visible,Full Horizontal Top Nav + Quick Region Pill,728x90 + 300x250,36x36,vp-1280
+1366,Widescreen Laptop,12 cols (gap 20px),1280px,2-Column Profile (320px Left Rail + 940px Match Stream),Full table + Sample Size + Trend Graph,Full Horizontal Top Nav,728x90 + 300x250,36x36,vp-1366
+1440,QHD / MacBook Pro Desktop,12 cols (gap 24px),1344px,2-Column Profile (332px Left Rail + 988px Match Stream),Full expanded analytics table,Full Horizontal Top Nav,970x90 + 300x250,36x36,vp-1440
+1920,Full HD Desktop Monitor,12 cols (gap 24px),1440px centered,2-Column Profile + Optional Sticky Right Live/Ad Rail,Full expanded analytics table,Full Horizontal Top Nav,970x90 + 300x600,36x36,vp-1920

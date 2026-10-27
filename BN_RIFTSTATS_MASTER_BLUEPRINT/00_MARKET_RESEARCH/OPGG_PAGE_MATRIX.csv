@@ -1,0 +1,27 @@
+Page_ID,Page_Name,OPGG_URL_Pattern,BN_RiftStats_Route,Primary_Riot_APIs,Cache_TTL_Sec,SSR_Mode,Parity_Status,Work_Order_Range
+PG-PUB-01,Global Home,https://op.gg/,/,"DATA-DRAGON, LOL-STATUS-V4",60,SSR+ISR,SUPPORTED,WO-RS-0651..0660
+PG-PUB-02,Server Selection Modal/Dropdown,https://op.gg/?region={region},/?region={region},LOL-STATUS-V4,300,Universal,SUPPORTED,WO-RS-0655..0658
+PG-PUB-03,Summoner Search Results / Disambiguation,https://op.gg/lol/summoners/search?q={q},/summoners/search?q={q}&region={r},"ACCOUNT-V1, SUMMONER-V4, LEAGUE-V4",30,SSR,SUPPORTED,WO-RS-0201..0235
+PG-PUB-04,Search Autocomplete Layer,Internal API,/api/v1/search/autocomplete,OpenSearch + Redis Cache,15,CSR,SUPPORTED,WO-RS-0660..0664
+PG-PUB-05,Search Error / Not Found / Unindexed,https://op.gg/lol/summoners/{r}/{id},/summoners/{region}/{riotId} (404 state),ACCOUNT-V1,10,SSR,SUPPORTED,WO-RS-0665..0667
+PG-PUB-06,Summoner Profile Overview,https://op.gg/lol/summoners/{r}/{name}-{tag},/summoners/{region}/{gameName}-{tagLine},"ACCOUNT-V1, SUMMONER-V4, LEAGUE-V4, MATCH-V5, CHAMPION-MASTERY-V4",120,SSR,SUPPORTED,WO-RS-0251..0285
+PG-PUB-07,Summoner Ranked Solo/Duo View,https://op.gg/lol/summoners/{r}/{name}-{tag}?queue_type=SOLORANKED,/summoners/{region}/{gameName}-{tagLine}?queue=solo,"LEAGUE-V4, MATCH-V5",120,SSR+CSR,SUPPORTED,WO-RS-0260..0275
+PG-PUB-08,Summoner Ranked Flex View,https://op.gg/lol/summoners/{r}/{name}-{tag}?queue_type=FLEXRANKED,/summoners/{region}/{gameName}-{tagLine}?queue=flex,"LEAGUE-V4, MATCH-V5",120,SSR+CSR,SUPPORTED,WO-RS-0265..0278
+PG-PUB-09,Summoner Recent Match History Stream,https://op.gg/lol/summoners/{r}/{name}-{tag},/summoners/{region}/{gameName}-{tagLine}/matches,MATCH-V5,60,CSR Paginated,SUPPORTED,WO-RS-0351..0375
+PG-PUB-10,Match Detail Expanded Accordion / Page,https://op.gg/lol/summoners/{r}/{name}-{tag}/matches/{matchId},/matches/{region}/{matchId},"MATCH-V5, MATCH-V5-TIMELINE",86400,SSR+CSR,SUPPORTED,WO-RS-0376..0395
+PG-PUB-11,Match Participant Comparison & Timeline,https://op.gg/lol/summoners/{r}/{name}-{tag}/matches/{matchId},/matches/{region}/{matchId}/analysis,"MATCH-V5, MATCH-V5-TIMELINE",86400,CSR,SUPPORTED,WO-RS-0385..0400
+PG-PUB-12,Champion Tier List (Global & Regional),https://op.gg/lol/champions,/champions/tier-list,Internal Aggregated DB + DATA-DRAGON,900,SSR,SUPPORTED,WO-RS-0401..0465
+PG-PUB-13,Champion Detail Overview,https://op.gg/lol/champions/{champ}/build,/champions/{championSlug},Internal Aggregated DB + DATA-DRAGON,900,SSR,SUPPORTED,WO-RS-0701..0715
+PG-PUB-14,Champion Build Recommendations,https://op.gg/lol/champions/{champ}/build/{role},/champions/{championSlug}/build/{role},Internal Aggregated DB + DATA-DRAGON,900,SSR,SUPPORTED,WO-RS-0501..0525
+PG-PUB-15,Champion Runes Deep Analysis,https://op.gg/lol/champions/{champ}/runes/{role},/champions/{championSlug}/runes/{role},Internal Aggregated DB + DATA-DRAGON,900,SSR,SUPPORTED,WO-RS-0526..0535
+PG-PUB-16,Champion Items Deep Analysis,https://op.gg/lol/champions/{champ}/items/{role},/champions/{championSlug}/items/{role},Internal Aggregated DB + DATA-DRAGON,900,SSR,SUPPORTED,WO-RS-0536..0545
+PG-PUB-17,Champion Skill Order Analysis,https://op.gg/lol/champions/{champ}/skills/{role},/champions/{championSlug}/skills/{role},Internal Aggregated DB + DATA-DRAGON,900,SSR,SUPPORTED,WO-RS-0546..0550
+PG-PUB-18,Champion Counters & Matchups,https://op.gg/lol/champions/{champ}/counters/{role},/champions/{championSlug}/counters/{role},Internal Aggregated DB + DATA-DRAGON,900,SSR,SUPPORTED,WO-RS-0551..0580
+PG-PUB-19,Champion Synergies & Duo Matrix,https://op.gg/lol/champions/{champ}/synergies/{role},/champions/{championSlug}/synergies/{role},Internal Aggregated DB + DATA-DRAGON,900,SSR,SUPPORTED,WO-RS-0581..0600
+PG-PUB-20,Global & Regional Leaderboards (Ladder/Mastery/Level),https://op.gg/lol/leaderboards/tiered,/leaderboards/{type}/{region},"LEAGUE-V4, LEAGUE-EXP-V4, CHAMPION-MASTERY-V4",600,SSR,SUPPORTED,WO-RS-0466..0490
+PG-PUB-21,"Game Mode Analytics (ARAM, Arena, URF, Mayhem)",https://op.gg/lol/modes/{mode},/modes/{modeSlug},Internal Aggregated DB (No Arena Augment WR),900,SSR,SUPPORTED,WO-RS-0601..0625
+PG-PUB-22,Patch Notes & Meta Shift Tracker,https://op.gg/lol/Calculation/patch-notes,/patches/{patchVersion},DATA-DRAGON + Internal Delta Engine,3600,SSR,SUPPORTED,WO-RS-0491..0500
+PG-PUB-23,Live Game Spectator & Data Freshness Status,https://op.gg/lol/summoners/{r}/{name}-{tag}/ingame,/summoners/{region}/{gameName}-{tagLine}/live-game,"SPECTATOR-V5, LEAGUE-V4",15,CSR,SUPPORTED,WO-RS-0626..0650
+PG-USR-01,User Registration & Login,https://member.op.gg/,"/auth/login, /auth/register",Platform Auth DB,0,CSR,SUPPORTED,WO-RS-0151..0170
+PG-USR-02,"Account Profile, Favorites & RSO Link",https://member.op.gg/account,"/account/settings, /account/favorites",Platform Auth DB + RSO (Approval Required),0,CSR,SUPPORTED / APPROVAL_REQUIRED,WO-RS-0171..0200
+PG-ADM-01,Admin Operations & Riot API Telemetry Console,Internal Admin,/admin/dashboard../*,Internal Telemetry + PostgreSQL + Redis,5,CSR (RBAC),SUPPORTED,WO-RS-0751..0800

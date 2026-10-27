@@ -1,0 +1,21 @@
+Endpoint_ID,API_Group,HTTP_Method,Path_Template,Routing_Scope,Auth_Header,Default_Method_Limit_Note,Redis_Cache_TTL_Sec,Persistence_Table,Public_Exposable,Fallback_Behavior
+EP-ACC-01,ACCOUNT-V1,GET,/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine},REGIONAL,X-Riot-Token,1000/1min (Prod typical),3600,"riot_accounts, riot_id_history",YES,Return cached PUUID from account_lookup_cache
+EP-ACC-02,ACCOUNT-V1,GET,/riot/account/v1/accounts/by-puuid/{puuid},REGIONAL,X-Riot-Token,1000/1min,3600,riot_accounts,YES,Return last known gameName#tagLine
+EP-ACC-03,ACCOUNT-V1,GET,/riot/account/v1/accounts/me,REGIONAL,Bearer (RSO),20000/10s,0,auth_identities,SELF_ONLY,Require re-login on 401
+EP-SUM-01,SUMMONER-V4,GET,/lol/summoner/v4/summoners/by-puuid/{encryptedPUUID},PLATFORM,X-Riot-Token,1600/1min,300,summoner_profiles,YES,Serve stale summoner_profiles row with stale=true flag
+EP-SUM-02,SUMMONER-V4,GET,/lol/summoner/v4/summoners/{encryptedSummonerId},PLATFORM,X-Riot-Token,1600/1min,300,summoner_profiles,YES,Serve stale summoner_profiles row
+EP-MAT-01,MATCH-V5,GET,/lol/match/v5/matches/by-puuid/{puuid}/ids,REGIONAL,X-Riot-Token,2000/10s,60,match_ingestion_status,YES (Non-Custom),Serve existing matches from PostgreSQL matches table
+EP-MAT-02,MATCH-V5,GET,/lol/match/v5/matches/{matchId},REGIONAL,X-Riot-Token,2000/10s,IMMUTABLE,"matches, match_participants, match_teams",YES (Non-Custom),Retry via job queue with exponential backoff
+EP-MAT-03,MATCH-V5,GET,/lol/match/v5/matches/{matchId}/timeline,REGIONAL,X-Riot-Token,2000/10s,IMMUTABLE,match_timeline_events,YES (Non-Custom),Render basic match detail without timeline tab
+EP-LGE-01,LEAGUE-V4,GET,/lol/league/v4/entries/by-puuid/{encryptedPUUID},PLATFORM,X-Riot-Token,20000/10s,180,"ranked_entries, ranking_snapshots",YES,Serve last known ranked_entries snapshot
+EP-LGE-02,LEAGUE-V4,GET,/lol/league/v4/challengerleagues/by-queue/{queue},PLATFORM,X-Riot-Token,30/10s,600,leaderboard_entries,YES,Serve last cached leaderboard snapshot
+EP-LGE-03,LEAGUE-V4,GET,/lol/league/v4/grandmasterleagues/by-queue/{queue},PLATFORM,X-Riot-Token,30/10s,600,leaderboard_entries,YES,Serve last cached leaderboard snapshot
+EP-LGE-04,LEAGUE-V4,GET,/lol/league/v4/masterleagues/by-queue/{queue},PLATFORM,X-Riot-Token,30/10s,600,leaderboard_entries,YES,Serve last cached leaderboard snapshot
+EP-LGX-01,LEAGUE-EXP-V4,GET,/lol/league-exp/v4/entries/{queue}/{tier}/{division},PLATFORM,X-Riot-Token,50/10s,1800,leaderboard_entries,YES,Pause background crawler on 429
+EP-MAS-01,CHAMPION-MASTERY-V4,GET,/lol/champion-mastery/v4/champion-masteries/by-puuid/{encryptedPUUID},PLATFORM,X-Riot-Token,20000/10s,900,champion_mastery_snapshots,YES,Serve cached mastery snapshot
+EP-MAS-02,CHAMPION-MASTERY-V4,GET,/lol/champion-mastery/v4/champion-masteries/by-puuid/{encryptedPUUID}/top,PLATFORM,X-Riot-Token,20000/10s,900,champion_mastery_snapshots,YES,Serve cached mastery snapshot
+EP-ROT-01,CHAMPION-V3,GET,/lol/platform/v3/champion-rotations,PLATFORM,X-Riot-Token,30/10s,3600,system_settings (cached JSON),YES,Serve cached rotation
+EP-SPC-01,SPECTATOR-V5,GET,/lol/spectator/v5/active-games/by-summoner/{encryptedPUUID},PLATFORM,X-Riot-Token,20000/10s,15,Redis ephemeral only,YES (Respect Anonymity),Return inGame=false on 404; service unavailable banner on 5xx
+EP-SPC-02,SPECTATOR-V5,GET,/lol/spectator/v5/featured-games,PLATFORM,X-Riot-Token,20000/10s,60,Redis ephemeral only,YES,Return empty list on error
+EP-CHL-01,LOL-CHALLENGES-V1,GET,/lol/challenges/v1/player-data/{puuid},PLATFORM,X-Riot-Token,20000/10s,1800,summoner_profiles (jsonb),YES,Omit challenge badge if unavailable
+EP-STS-01,LOL-STATUS-V4,GET,/lol/status/v4/platform-data,PLATFORM,X-Riot-Token,20000/10s,120,source_freshness,YES,Keep last known status
