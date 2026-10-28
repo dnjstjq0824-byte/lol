@@ -20,3 +20,4 @@ test.describe('Riot Developer Policy & Security Compliance', () => {
     expect(content).not.toContain('RGAPI-');
   });
 });
+

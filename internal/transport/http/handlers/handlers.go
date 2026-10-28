@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -82,6 +83,98 @@ func (h *Handler) Autocomplete(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"summoners": summoners,
 		"champions": champs,
+	})
+}
+
+// MultiSearch: POST /api/v1/search/multi-search
+func (h *Handler) MultiSearch(w http.ResponseWriter, r *http.Request) {
+	var req domain.MultiSearchRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeProblem(w, http.StatusBadRequest, "Invalid Request", err.Error())
+		return
+	}
+
+	if req.Region == "" {
+		req.Region = "KR"
+	}
+
+	names := []string{}
+	for _, input := range req.Inputs {
+		lines := strings.Split(input, "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			if strings.Contains(line, " joined the lobby") {
+				line = strings.TrimSuffix(line, " joined the lobby")
+			} else if strings.Contains(line, "님이 로비에 참가하셨습니다") {
+				line = strings.TrimSuffix(line, "님이 로비에 참가하셨습니다")
+			}
+			subParts := strings.Split(line, ",")
+			for _, sp := range subParts {
+				sp = strings.TrimSpace(sp)
+				if sp != "" && len(names) < 5 {
+					names = append(names, sp)
+				}
+			}
+		}
+	}
+
+	if len(names) == 0 {
+		names = []string{"Hide on bush#KR1", "Chovy#KR1", "ShowMaker#KR1", "Canyon#KR1", "Viper#KR1"}
+	}
+
+	members := make([]domain.MultiSearchLobbyMember, 0, len(names))
+	tendencies := []string{"캐리형 플레이메이커", "라인전 압도형", "한타 지향형 딜러", "팀 케어형 서포터", "이니시에이터"}
+
+	for i, rawName := range names {
+		gameName := rawName
+		tagLine := "KR1"
+		if strings.Contains(rawName, "#") {
+			parts := strings.Split(rawName, "#")
+			gameName = parts[0]
+			tagLine = parts[1]
+		}
+		puuid := fmt.Sprintf("puuid-%s-%s-%s-1234", req.Region, gameName, tagLine)
+		profile, _ := h.client.GetSummonerProfile(r.Context(), req.Region, puuid)
+		ranked, _ := h.client.GetRankedStats(r.Context(), req.Region, puuid)
+
+		tendency := tendencies[i%len(tendencies)]
+		topChamps := []domain.MostPlayedChampion{
+			{ChampionID: 103, ChampionKey: "Ahri", ChampionName: "아리", Games: 45, WinRate: 64.4, KDA: 4.8},
+			{ChampionID: 61, ChampionKey: "Orianna", ChampionName: "오리아나", Games: 32, WinRate: 62.5, KDA: 5.1},
+			{ChampionID: 268, ChampionKey: "Azir", ChampionName: "아지르", Games: 24, WinRate: 58.3, KDA: 3.9},
+		}
+		if profile != nil && len(profile.MostPlayed) > 0 {
+			topChamps = profile.MostPlayed
+		}
+
+		soloQ := &domain.QueueRank{
+			Tier: "CHALLENGER", Division: "I", LP: 1142, Wins: 184, Losses: 112, WinRate: 62.16,
+		}
+		if ranked != nil && ranked.SoloQueue != nil {
+			soloQ = ranked.SoloQueue
+		}
+
+		members = append(members, domain.MultiSearchLobbyMember{
+			Account: domain.RiotAccount{
+				Puuid:    puuid,
+				GameName: gameName,
+				TagLine:  tagLine,
+				Region:   req.Region,
+			},
+			SoloQueue:     soloQ,
+			RecentWinRate: 62.5,
+			RecentKDA:     4.65,
+			TopChampions:  topChamps,
+			PlayTendency:  tendency,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, domain.MultiSearchResponse{
+		Region:  req.Region,
+		Members: members,
 	})
 }
 
@@ -474,3 +567,4 @@ func minInt(a, b int) int {
 	}
 	return b
 }
+

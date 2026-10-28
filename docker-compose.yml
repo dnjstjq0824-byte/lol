@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: riftstats-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: riftstats
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations/0001_initial_schema.up.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: riftstats-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: riftstats-api
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      ENV: production
+      GOVERNOR_MODE: DEV_PROTOTYPE_MODE
+      DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/riftstats?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: super-secure-jwt-production-secret-2026
+      CURRENT_PATCH: "16.21"
+      DDRAGON_VERSION: "16.21.1"
+    ports:
+      - "8080:8080"
+
+  ingestor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: riftstats-ingestor
+    entrypoint: ["/app/ingestor"]
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      ENV: production
+      GOVERNOR_MODE: DEV_PROTOTYPE_MODE
+      DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/riftstats?sslmode=disable
+      REDIS_URL: redis://redis:6379
+
+  aggregator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: riftstats-aggregator
+    entrypoint: ["/app/aggregator"]
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      ENV: production
+      DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/riftstats?sslmode=disable
+      REDIS_URL: redis://redis:6379
+
+volumes:
+  pgdata:
+  redisdata:

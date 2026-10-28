@@ -15,6 +15,7 @@
         <nav class="hidden md:flex items-center space-x-1 text-sm font-medium">
           <router-link to="/" class="px-3 py-2 rounded-md hover:bg-rift-card text-gray-300 hover:text-white transition" active-class="text-white bg-rift-card">홈</router-link>
           <router-link to="/champions" class="px-3 py-2 rounded-md hover:bg-rift-card text-gray-300 hover:text-white transition" active-class="text-white bg-rift-card">챔피언 분석</router-link>
+          <router-link to="/multi-search" class="px-3 py-2 rounded-md hover:bg-rift-card text-gray-300 hover:text-white transition" active-class="text-white bg-rift-card">멀티서치</router-link>
           <router-link to="/leaderboards" class="px-3 py-2 rounded-md hover:bg-rift-card text-gray-300 hover:text-white transition" active-class="text-white bg-rift-card">랭킹</router-link>
           <router-link to="/spectator" class="px-3 py-2 rounded-md hover:bg-rift-card text-gray-300 hover:text-white transition" active-class="text-white bg-rift-card">인게임 정보</router-link>
           <router-link to="/modes" class="px-3 py-2 rounded-md hover:bg-rift-card text-gray-300 hover:text-white transition" active-class="text-white bg-rift-card">게임 모드</router-link>
@@ -59,3 +60,4 @@ const regions = [
   { uiCode: 'VN', regionalCluster: 'SEA' },
 ]
 </script>
+

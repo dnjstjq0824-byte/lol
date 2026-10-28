@@ -32,6 +32,17 @@ func GenerateMockSummonerProfile(region, gameName, tagLine string) *domain.Summo
 		TopPercentile:        0.0035,
 		LastUpdatedAt:        time.Now().Add(-15 * time.Minute),
 		NextRefreshAllowedAt: time.Now(),
+		MostPlayed: []domain.MostPlayedChampion{
+			{ChampionID: 103, ChampionKey: "Ahri", ChampionName: "아리", Games: 48, Wins: 31, Losses: 17, WinRate: 64.6, Kills: 7.8, Deaths: 3.2, Assists: 9.4, KDA: 5.38, CSPerMin: 8.6},
+			{ChampionID: 61, ChampionKey: "Orianna", ChampionName: "오리아나", Games: 36, Wins: 23, Losses: 13, WinRate: 63.9, Kills: 6.2, Deaths: 2.8, Assists: 10.1, KDA: 5.82, CSPerMin: 9.2},
+			{ChampionID: 268, ChampionKey: "Azir", ChampionName: "아지르", Games: 28, Wins: 17, Losses: 11, WinRate: 60.7, Kills: 5.9, Deaths: 3.4, Assists: 8.2, KDA: 4.15, CSPerMin: 9.5},
+			{ChampionID: 84, ChampionKey: "Akali", ChampionName: "아칼리", Games: 22, Wins: 13, Losses: 9, WinRate: 59.1, Kills: 9.1, Deaths: 4.2, Assists: 6.5, KDA: 3.71, CSPerMin: 7.9},
+		},
+		RecentDuos: []domain.RecentlyPlayedWith{
+			{Puuid: "puuid-kr-oner", GameName: "T1 Oner", TagLine: "KR1", Games: 14, Wins: 10, Losses: 4, WinRate: 71.4},
+			{Puuid: "puuid-kr-zeus", GameName: "T1 Zeus", TagLine: "KR1", Games: 9, Wins: 6, Losses: 3, WinRate: 66.7},
+			{Puuid: "puuid-kr-keria", GameName: "T1 Keria", TagLine: "KR1", Games: 8, Wins: 5, Losses: 3, WinRate: 62.5},
+		},
 	}
 }
 

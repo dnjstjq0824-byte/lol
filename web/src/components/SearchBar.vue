@@ -127,3 +127,4 @@ const selectChampion = (c: any) => {
   router.push(`/champions/${c.key}`)
 }
 </script>
+

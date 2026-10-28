@@ -36,14 +36,41 @@ type RiotAccount struct {
 }
 
 // Summoner
+type MostPlayedChampion struct {
+	ChampionID   int     `json:"championId"`
+	ChampionKey  string  `json:"championKey"`
+	ChampionName string  `json:"championName"`
+	Games        int     `json:"games"`
+	Wins         int     `json:"wins"`
+	Losses       int     `json:"losses"`
+	WinRate      float64 `json:"winRate"`
+	Kills        float64 `json:"kills"`
+	Deaths       float64 `json:"deaths"`
+	Assists      float64 `json:"assists"`
+	KDA          float64 `json:"kda"`
+	CSPerMin     float64 `json:"csPerMin"`
+}
+
+type RecentlyPlayedWith struct {
+	Puuid    string  `json:"puuid"`
+	GameName string  `json:"gameName"`
+	TagLine  string  `json:"tagLine"`
+	Games    int     `json:"games"`
+	Wins     int     `json:"wins"`
+	Losses   int     `json:"losses"`
+	WinRate  float64 `json:"winRate"`
+}
+
 type SummonerProfile struct {
-	Account              RiotAccount `json:"account"`
-	SummonerLevel        int         `json:"summonerLevel"`
-	ProfileIconID        int         `json:"profileIconId"`
-	LadderRank           int         `json:"ladderRank"`
-	TopPercentile        float64     `json:"topPercentile"`
-	LastUpdatedAt        time.Time   `json:"lastUpdatedAt"`
-	NextRefreshAllowedAt time.Time   `json:"nextRefreshAllowedAt"`
+	Account              RiotAccount          `json:"account"`
+	SummonerLevel        int                  `json:"summonerLevel"`
+	ProfileIconID        int                  `json:"profileIconId"`
+	LadderRank           int                  `json:"ladderRank"`
+	TopPercentile        float64              `json:"topPercentile"`
+	LastUpdatedAt        time.Time            `json:"lastUpdatedAt"`
+	NextRefreshAllowedAt time.Time            `json:"nextRefreshAllowedAt"`
+	MostPlayed           []MostPlayedChampion `json:"mostPlayed"`
+	RecentDuos           []RecentlyPlayedWith `json:"recentDuos"`
 }
 
 // Ranked
@@ -236,6 +263,11 @@ type SkillOrderOption struct {
 	PickRate  float64  `json:"pickRate"`
 }
 
+type SkillLevelGrid struct {
+	SkillKey string `json:"skillKey"` // "Q", "W", "E", "R"
+	Levels   []int  `json:"levels"`   // 18 entries: 1 if skilled at that level, 0 otherwise
+}
+
 type ChampionBuildResponse struct {
 	ChampionID     int                `json:"championId"`
 	ChampionKey    string             `json:"championKey"`
@@ -244,6 +276,7 @@ type ChampionBuildResponse struct {
 	Runes          []RuneSetup        `json:"runes"`
 	SummonerSpells []SpellPairOption  `json:"summonerSpells"`
 	SkillOrders    []SkillOrderOption `json:"skillOrders"`
+	SkillGrid      []SkillLevelGrid   `json:"skillGrid"`
 	StarterItems   []ItemOption       `json:"starterItems"`
 	Boots          []ItemOption       `json:"boots"`
 	CoreBuilds     []CoreBuildOption  `json:"coreBuilds"`
@@ -437,3 +470,24 @@ type HealthStatusResponse struct {
 	OpenSearch  string `json:"opensearch"`
 	RiotGateway string `json:"riotGateway"`
 }
+
+// Multi-Search (Lobby Scouting)
+type MultiSearchLobbyMember struct {
+	Account       RiotAccount          `json:"account"`
+	SoloQueue     *QueueRank           `json:"soloQueue,omitempty"`
+	RecentWinRate float64              `json:"recentWinRate"`
+	RecentKDA     float64              `json:"recentKda"`
+	TopChampions  []MostPlayedChampion `json:"topChampions"`
+	PlayTendency  string               `json:"playTendency"`
+}
+
+type MultiSearchRequest struct {
+	Region string   `json:"region"`
+	Inputs []string `json:"inputs"` // Riot IDs or raw chat lobby text
+}
+
+type MultiSearchResponse struct {
+	Region  string                   `json:"region"`
+	Members []MultiSearchLobbyMember `json:"members"`
+}
+

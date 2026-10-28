@@ -178,6 +178,12 @@ func (r *Repository) seedChampionBuild(id int, key, pos string) {
 			{SkillPath: []string{"Q", "W", "E"}, PickCount: 36000, WinRate: 53.4, PickRate: 80.2},
 			{SkillPath: []string{"Q", "E", "W"}, PickCount: 8900, WinRate: 50.9, PickRate: 19.8},
 		},
+		SkillGrid: []domain.SkillLevelGrid{
+			{SkillKey: "Q", Levels: []int{1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
+			{SkillKey: "W", Levels: []int{0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0}},
+			{SkillKey: "E", Levels: []int{0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1}},
+			{SkillKey: "R", Levels: []int{0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0}},
+		},
 		StarterItems: []domain.ItemOption{
 			{ItemID: 1056, Name: "도란의 반지", PickCount: 41000, WinRate: 52.9, PickRate: 91.5},
 			{ItemID: 2003, Name: "체력 물약", PickCount: 41000, WinRate: 52.9, PickRate: 91.5},
@@ -426,3 +432,4 @@ func (r *Repository) TotalMatches() int {
 	defer r.mu.RUnlock()
 	return r.totalMatches
 }
+

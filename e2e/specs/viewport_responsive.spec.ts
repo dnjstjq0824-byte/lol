@@ -29,6 +29,18 @@ test.describe('11-Viewport Responsive Integrity', () => {
     await expect(rows.first()).toBeVisible();
   });
 
+  test('Multi-Search view renders and analyzes lobby correctly', async ({ page }) => {
+    await page.goto('/multi-search');
+    await expect(page.getByRole('heading', { name: /멀티서치/ })).toBeVisible();
+
+    // Verify textarea is present
+    const textarea = page.locator('textarea');
+    await expect(textarea).toBeVisible();
+
+    // Check lobby member cards are rendered
+    await expect(page.getByText('Hide on bush').first()).toBeVisible();
+  });
+
   test('Riot Policy Legal Attribution is rendered in footer across viewports', async ({ page }) => {
     await page.goto('/');
     const footer = page.locator('footer');

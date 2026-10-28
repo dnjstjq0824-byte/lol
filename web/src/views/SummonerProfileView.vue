@@ -83,6 +83,56 @@
             </div>
           </div>
         </div>
+
+        <!-- Most Played Champions Breakdown -->
+        <div class="bg-rift-card border border-rift-border rounded-xl p-5 shadow-lg space-y-3">
+          <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+            시즌 모스트 챔피언
+          </div>
+          <div class="divide-y divide-rift-border/50">
+            <div
+              v-for="c in profile?.mostPlayed || []"
+              :key="c.championId"
+              class="py-2.5 flex items-center justify-between text-xs"
+            >
+              <div class="flex items-center space-x-2.5">
+                <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center font-bold text-cyan-400 text-xs">
+                  {{ c.championName.charAt(0) }}
+                </span>
+                <div>
+                  <div class="font-bold text-white">{{ c.championName }}</div>
+                  <div class="text-[10px] text-gray-400">CS {{ c.csPerMin }}/m</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="font-bold text-blue-400">{{ c.winRate.toFixed(1) }}%</div>
+                <div class="text-[10px] text-gray-400">{{ c.games }}판 ({{ c.kda.toFixed(2) }}:1 KDA)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recently Played With (Duo) -->
+        <div class="bg-rift-card border border-rift-border rounded-xl p-5 shadow-lg space-y-3">
+          <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+            함께 플레이한 소환사 (최근 20게임)
+          </div>
+          <div class="divide-y divide-rift-border/50">
+            <div
+              v-for="d in profile?.recentDuos || []"
+              :key="d.puuid"
+              class="py-2 flex items-center justify-between text-xs"
+            >
+              <div class="font-medium text-white truncate max-w-[130px]">
+                {{ d.gameName }}
+              </div>
+              <div class="text-right">
+                <span class="text-cyan-400 font-bold">{{ d.winRate.toFixed(0) }}%</span>
+                <span class="text-gray-400 text-[10px] ml-1.5">{{ d.wins }}승 {{ d.losses }}패</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Right Column: 20-Game Summary & Match History List -->
@@ -121,13 +171,17 @@
             v-for="m in matchHistory?.matches"
             :key="m.matchId"
             :class="[
-              'rounded-xl border p-4 transition shadow-md',
+              'rounded-xl border transition shadow-md overflow-hidden',
               m.participants[2]?.win
                 ? 'bg-gradient-to-r from-blue-950/40 to-rift-card border-blue-900/50 hover:border-blue-700'
                 : 'bg-gradient-to-r from-rose-950/40 to-rift-card border-rose-900/50 hover:border-rose-700'
             ]"
           >
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <!-- Match Header Summary Row -->
+            <div
+              @click="toggleExpandMatch(m.matchId)"
+              class="p-4 cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+            >
               <!-- Champion & Result -->
               <div class="flex items-center space-x-3">
                 <div class="relative">
@@ -159,7 +213,7 @@
                   {{ m.participants[2]?.kills }} / <span class="text-rose-400">{{ m.participants[2]?.deaths }}</span> / {{ m.participants[2]?.assists }}
                 </div>
                 <div class="text-gray-400 text-[11px]">KDA {{ m.participants[2]?.KDA }}</div>
-                <div class="text-cyan-400 font-semibold text-[10px]">Rift Score {{ m.participants[2]?.riftScore }}</div>
+                <div class="text-cyan-400 font-semibold text-[10px]">Rift Score {{ m.participants[2]?.riftScore }} (MVP)</div>
               </div>
 
               <!-- CS & Items -->
@@ -172,6 +226,79 @@
                 <div class="grid grid-cols-3 gap-1">
                   <div v-for="(it, idx) in m.participants[2]?.items.slice(0, 6)" :key="idx" class="w-6 h-6 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-[9px] text-gray-400">
                     {{ it ? it % 100 : '' }}
+                  </div>
+                </div>
+
+                <div class="text-gray-500 text-xs pl-2">
+                  {{ expandedMatchId === m.matchId ? '▲' : '▼' }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Expandable 10-Player Full Scoreboard -->
+            <div v-if="expandedMatchId === m.matchId" class="border-t border-rift-border/80 bg-[#0A0E18] p-4 space-y-4">
+              <!-- Blue Team Scoreboard -->
+              <div>
+                <div class="text-xs font-black text-blue-400 mb-2">블루 팀 (승리: {{ m.teams[0]?.win ? '승리' : '패배' }})</div>
+                <div class="space-y-1">
+                  <div
+                    v-for="p in m.participants.slice(0, 5)"
+                    :key="p.puuid"
+                    class="flex items-center justify-between text-xs p-1.5 rounded bg-gray-900/50"
+                  >
+                    <div class="flex items-center space-x-2 w-32">
+                      <span class="w-5 h-5 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-cyan-400">
+                        {{ p.championName.charAt(0) }}
+                      </span>
+                      <span class="truncate font-semibold text-gray-300">{{ p.gameName }}</span>
+                    </div>
+
+                    <div class="text-gray-400 text-center w-20">
+                      {{ p.kills }}/{{ p.deaths }}/{{ p.assists }}
+                    </div>
+
+                    <!-- Damage Bar -->
+                    <div class="w-36 flex items-center space-x-2">
+                      <div class="flex-1 bg-gray-800 h-2 rounded-full overflow-hidden">
+                        <div class="bg-blue-500 h-full rounded-full" :style="{ width: Math.min((p.totalDamage / 35000) * 100, 100) + '%' }"></div>
+                      </div>
+                      <span class="text-[10px] text-gray-400 w-12 text-right">{{ p.totalDamage }}</span>
+                    </div>
+
+                    <div class="text-right w-16 text-gray-400 text-[11px]">CS {{ p.cs }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Red Team Scoreboard -->
+              <div>
+                <div class="text-xs font-black text-rose-400 mb-2">레드 팀 (승리: {{ m.teams[1]?.win ? '승리' : '패배' }})</div>
+                <div class="space-y-1">
+                  <div
+                    v-for="p in m.participants.slice(5, 10)"
+                    :key="p.puuid"
+                    class="flex items-center justify-between text-xs p-1.5 rounded bg-gray-900/50"
+                  >
+                    <div class="flex items-center space-x-2 w-32">
+                      <span class="w-5 h-5 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-rose-400">
+                        {{ p.championName.charAt(0) }}
+                      </span>
+                      <span class="truncate font-semibold text-gray-300">{{ p.gameName }}</span>
+                    </div>
+
+                    <div class="text-gray-400 text-center w-20">
+                      {{ p.kills }}/{{ p.deaths }}/{{ p.assists }}
+                    </div>
+
+                    <!-- Damage Bar -->
+                    <div class="w-36 flex items-center space-x-2">
+                      <div class="flex-1 bg-gray-800 h-2 rounded-full overflow-hidden">
+                        <div class="bg-rose-500 h-full rounded-full" :style="{ width: Math.min((p.totalDamage / 35000) * 100, 100) + '%' }"></div>
+                      </div>
+                      <span class="text-[10px] text-gray-400 w-12 text-right">{{ p.totalDamage }}</span>
+                    </div>
+
+                    <div class="text-right w-16 text-gray-400 text-[11px]">CS {{ p.cs }}</div>
                   </div>
                 </div>
               </div>
@@ -199,6 +326,7 @@ const profile = ref<SummonerProfile | null>(null)
 const matchHistory = ref<MatchHistoryResponse | null>(null)
 const isRefreshing = ref(false)
 const isFavorited = ref(false)
+const expandedMatchId = ref<string | null>(null)
 
 const loadData = async () => {
   try {
@@ -211,6 +339,14 @@ const loadData = async () => {
     if (mRes.ok) matchHistory.value = await mRes.json()
   } catch (e) {
     console.error(e)
+  }
+}
+
+const toggleExpandMatch = (matchId: string) => {
+  if (expandedMatchId.value === matchId) {
+    expandedMatchId.value = null
+  } else {
+    expandedMatchId.value = matchId
   }
 }
 

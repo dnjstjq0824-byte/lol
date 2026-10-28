@@ -32,3 +32,4 @@ func main() {
 	defer ticker.Stop()
 	log.Println("Aggregator worker scheduled (60m cycle).")
 }
+

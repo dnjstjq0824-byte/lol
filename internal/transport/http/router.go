@@ -53,6 +53,7 @@ func NewRouter(cfg *config.Config, h *handlers.Handler) *chi.Mux {
 		// 02_AccountLookup & Search
 		r.Get("/accounts/by-riot-id/{region}/{gameName}/{tagLine}", h.ResolveRiotID)
 		r.Get("/search/autocomplete", h.Autocomplete)
+		r.Post("/search/multi-search", h.MultiSearch)
 
 		// 03_SummonerProfile, 04_RankedStats, 05_MatchHistory
 		r.Get("/summoners/{region}/by-puuid/{puuid}", h.GetSummonerProfile)

@@ -124,3 +124,4 @@ export interface ChampionTierListResponse {
   lastUpdatedAt: string;
   entries: ChampionTierEntry[];
 }
+

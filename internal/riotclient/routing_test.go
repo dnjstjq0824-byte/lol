@@ -61,3 +61,4 @@ func TestRateLimiterDevPrototypeMode(t *testing.T) {
 		t.Fatalf("Expected recovery after 429 cooldown: %v", err)
 	}
 }
+

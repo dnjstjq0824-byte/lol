@@ -8,12 +8,14 @@ import LiveSpectatorView from '../views/LiveSpectatorView.vue'
 import GameModesView from '../views/GameModesView.vue'
 import FavoritesView from '../views/FavoritesView.vue'
 import AdminConsoleView from '../views/AdminConsoleView.vue'
+import MultiSearchView from '../views/MultiSearchView.vue'
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
   { path: '/summoners/:region/:slug', name: 'summoner', component: SummonerProfileView },
   { path: '/champions', name: 'champions', component: ChampionListView },
   { path: '/champions/:key', name: 'champion-detail', component: ChampionDetailView },
+  { path: '/multi-search', name: 'multi-search', component: MultiSearchView },
   { path: '/leaderboards', name: 'leaderboards', component: LeaderboardsView },
   { path: '/spectator', name: 'spectator', component: LiveSpectatorView },
   { path: '/modes', name: 'modes', component: GameModesView },
@@ -28,3 +30,4 @@ export const router = createRouter({
     return { top: 0 }
   }
 })
+

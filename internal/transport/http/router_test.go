@@ -151,3 +151,43 @@ func TestAuthFlowAndProtection(t *testing.T) {
 		t.Fatalf("Expected 401 for unauthenticated /users/me, got %d", recNoAuth.Code)
 	}
 }
+
+func TestMultiSearchLobbyScouting(t *testing.T) {
+	ts := setupTestServer()
+
+	body := strings.NewReader(`{"region":"KR","inputs":["Hide on bush#KR1\nChovy#KR1\nShowMaker#KR1"]}`)
+	req := httptest.NewRequest("POST", "/api/v1/search/multi-search", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	ts.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Multi-search failed: %d, body: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		Region  string `json:"region"`
+		Members []struct {
+			Account struct {
+				GameName string `json:"gameName"`
+			} `json:"account"`
+			SoloQueue struct {
+				Tier string `json:"tier"`
+			} `json:"soloQueue"`
+			TopChampions []struct {
+				ChampionName string `json:"championName"`
+			} `json:"topChampions"`
+		} `json:"members"`
+	}
+
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("Failed decoding multi-search response: %v", err)
+	}
+
+	if len(resp.Members) != 3 {
+		t.Fatalf("Expected 3 members parsed, got %d", len(resp.Members))
+	}
+	if resp.Members[0].Account.GameName != "Hide on bush" {
+		t.Fatalf("Expected member 0 to be Hide on bush, got %s", resp.Members[0].Account.GameName)
+	}
+}

@@ -23,3 +23,4 @@ func main() {
 	log.Printf("Ingestion worker online and consuming queues for patch %s\n", cfg.CurrentPatch)
 	_ = client
 }
+

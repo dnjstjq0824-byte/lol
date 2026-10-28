@@ -189,3 +189,4 @@ func (m *DDragonManager) GetQueueName(id int) string {
 	}
 	return "기타 게임 모드"
 }
+

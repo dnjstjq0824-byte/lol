@@ -12,3 +12,4 @@
 import HeaderNav from '@/components/HeaderNav.vue'
 import FooterAttribution from '@/components/FooterAttribution.vue'
 </script>
+

@@ -202,3 +202,4 @@ func ListAllRegions() []domain.RegionInfo {
 	}
 	return result
 }
+
