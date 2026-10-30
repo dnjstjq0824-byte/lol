@@ -30,3 +30,4 @@ docker-down:
 
 clean:
 	rm -rf bin/ web/dist/
+

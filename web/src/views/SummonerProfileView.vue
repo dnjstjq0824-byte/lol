@@ -5,7 +5,7 @@
       <div class="flex items-center space-x-5">
         <div class="relative">
           <div class="w-20 h-20 rounded-2xl bg-gray-800 border-2 border-cyan-500/40 flex items-center justify-center font-bold text-2xl text-cyan-400">
-            {{ gameName.charAt(0) }}
+            {{ (gameName || 'H').charAt(0) }}
           </div>
           <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-gray-900 border border-gray-700 text-[10px] font-bold text-gray-300">
             Lv.{{ profile?.summonerLevel || 684 }}
@@ -97,7 +97,7 @@
             >
               <div class="flex items-center space-x-2.5">
                 <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center font-bold text-cyan-400 text-xs">
-                  {{ c.championName.charAt(0) }}
+                  {{ (c.championName || 'A').charAt(0) }}
                 </span>
                 <div>
                   <div class="font-bold text-white">{{ c.championName }}</div>
@@ -138,7 +138,7 @@
       <!-- Right Column: 20-Game Summary & Match History List -->
       <div class="lg:col-span-2 space-y-4">
         <!-- 20-Game Summary Banner -->
-        <div v-if="matchHistory" class="bg-rift-card border border-rift-border rounded-xl p-5 shadow-lg flex flex-wrap items-center justify-between gap-4">
+        <div v-if="matchHistory?.summary20Games" class="bg-rift-card border border-rift-border rounded-xl p-5 shadow-lg flex flex-wrap items-center justify-between gap-4">
           <div>
             <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">최근 20경기 요약</div>
             <div class="text-lg font-black text-white mt-1">
@@ -155,12 +155,12 @@
                 <span class="text-rose-400">{{ matchHistory.summary20Games.avgDeaths.toFixed(1) }}</span> /
                 {{ matchHistory.summary20Games.avgAssists.toFixed(1) }}
               </div>
-              <div class="text-cyan-400 font-semibold">{{ matchHistory.summary20Games.avgKDA.toFixed(2) }}:1</div>
+              <div class="text-cyan-400 font-semibold">{{ matchHistory.summary20Games.avgKda.toFixed(2) }}:1</div>
             </div>
 
             <div>
               <div class="text-gray-500">킬관여율</div>
-              <div class="font-bold text-indigo-400 text-sm">{{ matchHistory.summary20Games.avgKP }}%</div>
+              <div class="font-bold text-indigo-400 text-sm">{{ matchHistory.summary20Games.avgKp }}%</div>
             </div>
           </div>
         </div>
@@ -168,11 +168,11 @@
         <!-- Matches Cards -->
         <div class="space-y-3">
           <div
-            v-for="m in matchHistory?.matches"
+            v-for="m in matchHistory?.matches || []"
             :key="m.matchId"
             :class="[
               'rounded-xl border transition shadow-md overflow-hidden',
-              m.participants[2]?.win
+              getPlayer(m)?.win
                 ? 'bg-gradient-to-r from-blue-950/40 to-rift-card border-blue-900/50 hover:border-blue-700'
                 : 'bg-gradient-to-r from-rose-950/40 to-rift-card border-rose-900/50 hover:border-rose-700'
             ]"
@@ -182,27 +182,55 @@
               @click="toggleExpandMatch(m.matchId)"
               class="p-4 cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
             >
-              <!-- Champion & Result -->
+              <!-- Champion & Result & Spells / Runes -->
               <div class="flex items-center space-x-3">
                 <div class="relative">
                   <div class="w-12 h-12 rounded-lg bg-gray-800 border flex items-center justify-center font-bold text-sm text-cyan-300">
-                    {{ m.participants[2]?.championName.charAt(0) }}
+                    {{ (getPlayer(m)?.championName || 'A').charAt(0) }}
                   </div>
                   <span class="absolute -bottom-1 -right-1 px-1 rounded bg-black/80 text-[9px] font-bold">
-                    {{ m.participants[2]?.teamPosition }}
+                    {{ getPlayer(m)?.teamPosition || 'MID' }}
                   </span>
+                </div>
+
+                <!-- Spells & Runes -->
+                <div class="flex flex-col space-y-1">
+                  <div class="flex space-x-1">
+                    <SpellPopover :spellId="getPlayer(m)?.summoner1Id || 4">
+                      <div class="w-4 h-4 rounded bg-amber-950/80 border border-amber-600/60 flex items-center justify-center text-[8px] font-black text-amber-300 cursor-pointer">
+                        D
+                      </div>
+                    </SpellPopover>
+                    <SpellPopover :spellId="getPlayer(m)?.summoner2Id || 14">
+                      <div class="w-4 h-4 rounded bg-amber-950/80 border border-amber-600/60 flex items-center justify-center text-[8px] font-black text-amber-300 cursor-pointer">
+                        F
+                      </div>
+                    </SpellPopover>
+                  </div>
+                  <div class="flex space-x-1">
+                    <RunePopover :runeId="getPlayer(m)?.primaryRune || 8112">
+                      <div class="w-4 h-4 rounded-full bg-purple-950 border border-purple-600/60 flex items-center justify-center text-[8px] font-black text-purple-300 cursor-pointer">
+                        ⚡
+                      </div>
+                    </RunePopover>
+                    <RunePopover :runeId="getPlayer(m)?.secondaryTree || 8000">
+                      <div class="w-4 h-4 rounded-full bg-yellow-950 border border-yellow-600/60 flex items-center justify-center text-[8px] font-black text-yellow-300 cursor-pointer">
+                        🎯
+                      </div>
+                    </RunePopover>
+                  </div>
                 </div>
 
                 <div>
                   <div class="flex items-center space-x-2">
-                    <span :class="['text-xs font-black uppercase', m.participants[2]?.win ? 'text-blue-400' : 'text-rose-400']">
-                      {{ m.participants[2]?.win ? '승리' : '패배' }}
+                    <span :class="['text-xs font-black uppercase', getPlayer(m)?.win ? 'text-blue-400' : 'text-rose-400']">
+                      {{ getPlayer(m)?.win ? '승리' : '패배' }}
                     </span>
                     <span class="text-xs text-gray-400">{{ m.queueName }}</span>
                     <span class="text-[11px] text-gray-500">({{ Math.floor(m.gameDurationSec / 60) }}분)</span>
                   </div>
                   <div class="font-bold text-white text-sm mt-0.5">
-                    {{ m.participants[2]?.championName }}
+                    {{ getPlayer(m)?.championName }}
                   </div>
                 </div>
               </div>
@@ -210,23 +238,29 @@
               <!-- KDA & Rift Score -->
               <div class="text-xs space-y-0.5">
                 <div class="font-bold text-white">
-                  {{ m.participants[2]?.kills }} / <span class="text-rose-400">{{ m.participants[2]?.deaths }}</span> / {{ m.participants[2]?.assists }}
+                  {{ getPlayer(m)?.kills }} / <span class="text-rose-400">{{ getPlayer(m)?.deaths }}</span> / {{ getPlayer(m)?.assists }}
                 </div>
-                <div class="text-gray-400 text-[11px]">KDA {{ m.participants[2]?.KDA }}</div>
-                <div class="text-cyan-400 font-semibold text-[10px]">Rift Score {{ m.participants[2]?.riftScore }} (MVP)</div>
+                <div class="text-gray-400 text-[11px]">KDA {{ getPlayer(m)?.kda }}</div>
+                <div class="text-cyan-400 font-semibold text-[10px]">Rift Score {{ getPlayer(m)?.riftScore }} (MVP)</div>
               </div>
 
-              <!-- CS & Items -->
+              <!-- CS & Items with ItemPopover -->
               <div class="flex items-center space-x-3">
                 <div class="text-xs text-right">
-                  <div class="font-semibold text-gray-300">CS {{ m.participants[2]?.cs }}</div>
-                  <div class="text-[10px] text-gray-500">({{ m.participants[2]?.csPerMin.toFixed(1) }}/m)</div>
+                  <div class="font-semibold text-gray-300">CS {{ getPlayer(m)?.cs }}</div>
+                  <div class="text-[10px] text-gray-500">({{ getPlayer(m)?.csPerMin.toFixed(1) }}/m)</div>
                 </div>
 
                 <div class="grid grid-cols-3 gap-1">
-                  <div v-for="(it, idx) in m.participants[2]?.items.slice(0, 6)" :key="idx" class="w-6 h-6 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-[9px] text-gray-400">
-                    {{ it ? it % 100 : '' }}
-                  </div>
+                  <ItemPopover
+                    v-for="(it, idx) in (getPlayer(m)?.items || []).slice(0, 6)"
+                    :key="idx"
+                    :itemId="it"
+                  >
+                    <div class="w-6 h-6 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-[9px] text-cyan-300 hover:border-cyan-400 transition cursor-pointer">
+                      {{ it ? (it >= 3000 ? it % 100 : it) : '' }}
+                    </div>
+                  </ItemPopover>
                 </div>
 
                 <div class="text-gray-500 text-xs pl-2">
@@ -235,72 +269,139 @@
               </div>
             </div>
 
-            <!-- Expandable 10-Player Full Scoreboard -->
+            <!-- Expandable Accordion with Sub-tabs -->
             <div v-if="expandedMatchId === m.matchId" class="border-t border-rift-border/80 bg-[#0A0E18] p-4 space-y-4">
-              <!-- Blue Team Scoreboard -->
-              <div>
-                <div class="text-xs font-black text-blue-400 mb-2">블루 팀 (승리: {{ m.teams[0]?.win ? '승리' : '패배' }})</div>
-                <div class="space-y-1">
-                  <div
-                    v-for="p in m.participants.slice(0, 5)"
-                    :key="p.puuid"
-                    class="flex items-center justify-between text-xs p-1.5 rounded bg-gray-900/50"
-                  >
-                    <div class="flex items-center space-x-2 w-32">
-                      <span class="w-5 h-5 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-cyan-400">
-                        {{ p.championName.charAt(0) }}
-                      </span>
-                      <span class="truncate font-semibold text-gray-300">{{ p.gameName }}</span>
-                    </div>
+              <!-- Sub-tab Navigation (OP.GG Parity) -->
+              <div class="flex items-center space-x-2 border-b border-rift-border/60 pb-2 text-xs">
+                <button
+                  @click.stop="activeSubTab = 'scoreboard'"
+                  :class="['px-3 py-1.5 rounded-lg font-bold transition', activeSubTab === 'scoreboard' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white']"
+                >
+                  팀 스코어보드 & 빌드
+                </button>
+                <button
+                  @click.stop="activeSubTab = 'timeline'"
+                  :class="['px-3 py-1.5 rounded-lg font-bold transition', activeSubTab === 'timeline' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white']"
+                >
+                  골드 격차 및 타임라인
+                </button>
+              </div>
 
-                    <div class="text-gray-400 text-center w-20">
-                      {{ p.kills }}/{{ p.deaths }}/{{ p.assists }}
-                    </div>
-
-                    <!-- Damage Bar -->
-                    <div class="w-36 flex items-center space-x-2">
-                      <div class="flex-1 bg-gray-800 h-2 rounded-full overflow-hidden">
-                        <div class="bg-blue-500 h-full rounded-full" :style="{ width: Math.min((p.totalDamage / 35000) * 100, 100) + '%' }"></div>
+              <!-- Sub-tab 1: Scoreboard -->
+              <div v-if="activeSubTab === 'scoreboard'" class="space-y-4">
+                <!-- Blue Team Scoreboard -->
+                <div>
+                  <div class="text-xs font-black text-blue-400 mb-2 flex items-center justify-between">
+                    <span>블루 팀 (승리: {{ m.teams?.[0]?.win ? '승리' : '패배' }})</span>
+                    <span class="text-[11px] text-gray-400">타워 {{ m.teams?.[0]?.objectives?.tower || 8 }} • 드래곤 {{ m.teams?.[0]?.objectives?.dragon || 3 }} • 바론 {{ m.teams?.[0]?.objectives?.baron || 1 }}</span>
+                  </div>
+                  <div class="space-y-1">
+                    <div
+                      v-for="p in (m.participants || []).slice(0, 5)"
+                      :key="p.puuid"
+                      class="flex items-center justify-between text-xs p-1.5 rounded bg-gray-900/50 hover:bg-gray-900 transition"
+                    >
+                      <div class="flex items-center space-x-2 w-36">
+                        <span class="w-6 h-6 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-cyan-400">
+                          {{ (p.championName || 'A').charAt(0) }}
+                        </span>
+                        <div class="flex space-x-0.5">
+                          <SpellPopover :spellId="p.summoner1Id">
+                            <span class="w-3.5 h-3.5 rounded bg-amber-950 text-[7px] text-amber-300 font-bold flex items-center justify-center">D</span>
+                          </SpellPopover>
+                          <SpellPopover :spellId="p.summoner2Id">
+                            <span class="w-3.5 h-3.5 rounded bg-amber-950 text-[7px] text-amber-300 font-bold flex items-center justify-center">F</span>
+                          </SpellPopover>
+                        </div>
+                        <span class="truncate font-semibold text-gray-300">{{ p.gameName }}</span>
                       </div>
-                      <span class="text-[10px] text-gray-400 w-12 text-right">{{ p.totalDamage }}</span>
-                    </div>
 
-                    <div class="text-right w-16 text-gray-400 text-[11px]">CS {{ p.cs }}</div>
+                      <div class="text-gray-400 text-center w-16">
+                        {{ p.kills }}/{{ p.deaths }}/{{ p.assists }}
+                      </div>
+
+                      <!-- Damage Bar -->
+                      <div class="w-32 flex items-center space-x-2">
+                        <div class="flex-1 bg-gray-800 h-2 rounded-full overflow-hidden">
+                          <div class="bg-blue-500 h-full rounded-full" :style="{ width: Math.min(((p.totalDamage || 20000) / 35000) * 100, 100) + '%' }"></div>
+                        </div>
+                        <span class="text-[10px] text-gray-400 w-10 text-right">{{ p.totalDamage }}</span>
+                      </div>
+
+                      <!-- Items with popover -->
+                      <div class="flex space-x-1">
+                        <ItemPopover v-for="(it, idx) in (p.items || []).slice(0, 6)" :key="idx" :itemId="it">
+                          <div class="w-5 h-5 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-[8px] text-gray-300">
+                            {{ it ? it % 100 : '' }}
+                          </div>
+                        </ItemPopover>
+                      </div>
+
+                      <div class="text-right w-14 text-gray-400 text-[11px]">CS {{ p.cs }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Red Team Scoreboard -->
+                <div>
+                  <div class="text-xs font-black text-rose-400 mb-2 flex items-center justify-between">
+                    <span>레드 팀 (승리: {{ m.teams?.[1]?.win ? '승리' : '패배' }})</span>
+                    <span class="text-[11px] text-gray-400">타워 {{ m.teams?.[1]?.objectives?.tower || 3 }} • 드래곤 {{ m.teams?.[1]?.objectives?.dragon || 1 }} • 바론 {{ m.teams?.[1]?.objectives?.baron || 0 }}</span>
+                  </div>
+                  <div class="space-y-1">
+                    <div
+                      v-for="p in (m.participants || []).slice(5, 10)"
+                      :key="p.puuid"
+                      class="flex items-center justify-between text-xs p-1.5 rounded bg-gray-900/50 hover:bg-gray-900 transition"
+                    >
+                      <div class="flex items-center space-x-2 w-36">
+                        <span class="w-6 h-6 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-rose-400">
+                          {{ (p.championName || 'A').charAt(0) }}
+                        </span>
+                        <div class="flex space-x-0.5">
+                          <SpellPopover :spellId="p.summoner1Id">
+                            <span class="w-3.5 h-3.5 rounded bg-amber-950 text-[7px] text-amber-300 font-bold flex items-center justify-center">D</span>
+                          </SpellPopover>
+                          <SpellPopover :spellId="p.summoner2Id">
+                            <span class="w-3.5 h-3.5 rounded bg-amber-950 text-[7px] text-amber-300 font-bold flex items-center justify-center">F</span>
+                          </SpellPopover>
+                        </div>
+                        <span class="truncate font-semibold text-gray-300">{{ p.gameName }}</span>
+                      </div>
+
+                      <div class="text-gray-400 text-center w-16">
+                        {{ p.kills }}/{{ p.deaths }}/{{ p.assists }}
+                      </div>
+
+                      <!-- Damage Bar -->
+                      <div class="w-32 flex items-center space-x-2">
+                        <div class="flex-1 bg-gray-800 h-2 rounded-full overflow-hidden">
+                          <div class="bg-rose-500 h-full rounded-full" :style="{ width: Math.min(((p.totalDamage || 20000) / 35000) * 100, 100) + '%' }"></div>
+                        </div>
+                        <span class="text-[10px] text-gray-400 w-10 text-right">{{ p.totalDamage }}</span>
+                      </div>
+
+                      <!-- Items with popover -->
+                      <div class="flex space-x-1">
+                        <ItemPopover v-for="(it, idx) in (p.items || []).slice(0, 6)" :key="idx" :itemId="it">
+                          <div class="w-5 h-5 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-[8px] text-gray-300">
+                            {{ it ? it % 100 : '' }}
+                          </div>
+                        </ItemPopover>
+                      </div>
+
+                      <div class="text-right w-14 text-gray-400 text-[11px]">CS {{ p.cs }}</div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Red Team Scoreboard -->
-              <div>
-                <div class="text-xs font-black text-rose-400 mb-2">레드 팀 (승리: {{ m.teams[1]?.win ? '승리' : '패배' }})</div>
-                <div class="space-y-1">
-                  <div
-                    v-for="p in m.participants.slice(5, 10)"
-                    :key="p.puuid"
-                    class="flex items-center justify-between text-xs p-1.5 rounded bg-gray-900/50"
-                  >
-                    <div class="flex items-center space-x-2 w-32">
-                      <span class="w-5 h-5 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-rose-400">
-                        {{ p.championName.charAt(0) }}
-                      </span>
-                      <span class="truncate font-semibold text-gray-300">{{ p.gameName }}</span>
-                    </div>
-
-                    <div class="text-gray-400 text-center w-20">
-                      {{ p.kills }}/{{ p.deaths }}/{{ p.assists }}
-                    </div>
-
-                    <!-- Damage Bar -->
-                    <div class="w-36 flex items-center space-x-2">
-                      <div class="flex-1 bg-gray-800 h-2 rounded-full overflow-hidden">
-                        <div class="bg-rose-500 h-full rounded-full" :style="{ width: Math.min((p.totalDamage / 35000) * 100, 100) + '%' }"></div>
-                      </div>
-                      <span class="text-[10px] text-gray-400 w-12 text-right">{{ p.totalDamage }}</span>
-                    </div>
-
-                    <div class="text-right w-16 text-gray-400 text-[11px]">CS {{ p.cs }}</div>
-                  </div>
-                </div>
+              <!-- Sub-tab 2: Match Timeline Diff Chart -->
+              <div v-else-if="activeSubTab === 'timeline'">
+                <MatchTimelineChart
+                  :gameDurationSec="m.gameDurationSec"
+                  :isBlueWin="m.teams?.[0]?.win"
+                />
               </div>
             </div>
           </div>
@@ -314,26 +415,38 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import type { SummonerProfile, MatchHistoryResponse } from '@/types'
+import ItemPopover from '@/components/ItemPopover.vue'
+import RunePopover from '@/components/RunePopover.vue'
+import SpellPopover from '@/components/SpellPopover.vue'
+import MatchTimelineChart from '@/components/MatchTimelineChart.vue'
 
 const route = useRoute()
 const region = ref((route.params.region as string) || 'KR')
-const slug = (route.params.slug as string) || 'Hide on bush-KR1'
+const rawSlug = (route.params.slug as string) || 'Hide on bush-KR1'
+const decodedSlug = decodeURIComponent(rawSlug)
 
-const gameName = ref(slug.split('-')[0] || 'Hide on bush')
-const tagLine = ref(slug.split('-')[1] || 'KR1')
+const gameName = ref(decodedSlug.split('-')[0] || 'Hide on bush')
+const tagLine = ref(decodedSlug.split('-')[1] || 'KR1')
 
 const profile = ref<SummonerProfile | null>(null)
 const matchHistory = ref<MatchHistoryResponse | null>(null)
 const isRefreshing = ref(false)
 const isFavorited = ref(false)
 const expandedMatchId = ref<string | null>(null)
+const activeSubTab = ref<'scoreboard' | 'timeline'>('scoreboard')
+
+const getPlayer = (m: any) => {
+  if (!m || !m.participants || m.participants.length === 0) return null
+  return m.participants.find((p: any) => p.gameName === gameName.value || p.puuid?.includes('sample')) || m.participants[0]
+}
 
 const loadData = async () => {
   try {
     const puuid = `puuid-${region.value}-${gameName.value}-${tagLine.value}-1234`
+    const encPuuid = encodeURIComponent(puuid)
     const [pRes, mRes] = await Promise.all([
-      fetch(`/api/v1/summoners/${region.value}/by-puuid/${puuid}`),
-      fetch(`/api/v1/summoners/${region.value}/by-puuid/${puuid}/matches?count=20`),
+      fetch(`/api/v1/summoners/${region.value}/by-puuid/${encPuuid}`),
+      fetch(`/api/v1/summoners/${region.value}/by-puuid/${encPuuid}/matches?count=20`),
     ])
     if (pRes.ok) profile.value = await pRes.json()
     if (mRes.ok) matchHistory.value = await mRes.json()
@@ -347,13 +460,14 @@ const toggleExpandMatch = (matchId: string) => {
     expandedMatchId.value = null
   } else {
     expandedMatchId.value = matchId
+    activeSubTab.value = 'scoreboard'
   }
 }
 
 const refreshData = async () => {
   isRefreshing.value = true
   const puuid = `puuid-${region.value}-${gameName.value}-${tagLine.value}-1234`
-  await fetch(`/api/v1/ingestion/summoners/${region.value}/${puuid}/refresh`, { method: 'POST' })
+  await fetch(`/api/v1/ingestion/summoners/${region.value}/${encodeURIComponent(puuid)}/refresh`, { method: 'POST' })
   setTimeout(() => {
     isRefreshing.value = false
     loadData()

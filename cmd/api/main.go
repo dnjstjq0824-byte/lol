@@ -12,6 +12,8 @@ import (
 
 	"bn-riftstats/internal/config"
 	"bn-riftstats/internal/repository"
+	"bn-riftstats/internal/repository/cache"
+	"bn-riftstats/internal/repository/postgres"
 	"bn-riftstats/internal/riotclient"
 	transport "bn-riftstats/internal/transport/http"
 	"bn-riftstats/internal/transport/http/handlers"
@@ -26,6 +28,32 @@ func main() {
 
 	cfg := config.Load()
 	log.Printf("Starting in environment: %s | Governor Mode: %s\n", cfg.Environment, cfg.GovernorMode)
+
+	ctx := context.Background()
+
+	// Initialize PostgreSQL 16 connection with resilient failover
+	var pgDB *postgres.DB
+	if cfg.DatabaseURL != "" {
+		db, err := postgres.Connect(ctx, cfg.DatabaseURL)
+		if err != nil {
+			log.Printf("[DB Notice] PostgreSQL connection standby (%v); using high-performance internal memory store", err)
+		} else {
+			pgDB = db
+			defer pgDB.Close()
+		}
+	}
+
+	// Initialize Redis 7.2 connection with resilient failover
+	var redisClient *cache.RedisCache
+	if cfg.RedisURL != "" {
+		rc, err := cache.Connect(ctx, cfg.RedisURL)
+		if err != nil {
+			log.Printf("[Cache Notice] Redis connection standby (%v); using in-process L1 token bucket cache", err)
+		} else {
+			redisClient = rc
+			defer redisClient.Close()
+		}
+	}
 
 	client := riotclient.NewClient(cfg)
 	repo := repository.NewRepository(client.DDragon())
@@ -54,11 +82,10 @@ func main() {
 	<-quit
 	log.Println("Shutting down API server...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := server.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
 	log.Println("Server gracefully stopped.")
 }
-

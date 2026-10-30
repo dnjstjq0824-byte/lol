@@ -91,8 +91,19 @@
               <span class="text-gray-400">승률 <strong class="text-blue-400">{{ r.winRate }}%</strong></span>
             </div>
           </div>
-          <div class="text-xs text-gray-300">
-            주 룬 트리: <strong>{{ r.primaryTreeId }}</strong> (핵심 룬 {{ r.primaryKeystone }}) • 보조 룬: <strong>{{ r.secondaryTreeId }}</strong>
+          <div class="text-xs text-gray-300 flex items-center space-x-2">
+            <span>주 룬 트리:</span>
+            <RunePopover :runeId="r.primaryKeystone">
+              <span class="px-2 py-0.5 rounded bg-purple-950/80 border border-purple-700 text-purple-300 font-bold cursor-pointer hover:border-purple-400 transition">
+                핵심 룬 {{ r.primaryKeystone }}
+              </span>
+            </RunePopover>
+            <span>• 보조 트리:</span>
+            <RunePopover :runeId="r.secondaryTreeId">
+              <span class="px-2 py-0.5 rounded bg-yellow-950/80 border border-yellow-700 text-yellow-300 font-bold cursor-pointer hover:border-yellow-400 transition">
+                트리 {{ r.secondaryTreeId }}
+              </span>
+            </RunePopover>
           </div>
         </div>
       </div>
@@ -107,9 +118,11 @@
         <div v-for="(cb, idx) in build?.coreBuilds" :key="idx" class="p-4 rounded-lg bg-[#0F172A] border border-rift-border space-y-2">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
-              <span v-for="id in cb.itemIds" :key="id" class="px-2.5 py-1 rounded bg-gray-800 text-xs font-bold text-cyan-300 border border-gray-700">
-                아이템 {{ id }}
-              </span>
+              <ItemPopover v-for="id in cb.itemIds" :key="id" :itemId="id">
+                <span class="px-2.5 py-1 rounded bg-gray-800 text-xs font-bold text-cyan-300 border border-gray-700 hover:border-cyan-400 transition cursor-pointer">
+                  아이템 {{ id }}
+                </span>
+              </ItemPopover>
             </div>
             <div class="text-xs space-x-3">
               <span class="text-gray-400">픽률 <strong class="text-white">{{ cb.pickRate }}%</strong></span>
@@ -174,6 +187,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import ItemPopover from '@/components/ItemPopover.vue'
+import RunePopover from '@/components/RunePopover.vue'
 
 const route = useRoute()
 const championKey = ref((route.params.key as string) || 'Ahri')
