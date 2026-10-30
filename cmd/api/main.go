@@ -57,6 +57,14 @@ func main() {
 
 	client := riotclient.NewClient(cfg)
 	repo := repository.NewRepository(client.DDragon())
+	if pgDB != nil {
+		repo.SetPostgres(postgres.NewPostgresRepo(pgDB))
+		log.Println("[Repository] PostgreSQL 16 persistence layer activated")
+	}
+	if redisClient != nil {
+		repo.SetRedis(redisClient)
+		log.Println("[Repository] Redis 7.2 L2 cache layer activated")
+	}
 	handler := handlers.NewHandler(cfg, client, repo)
 	router := transport.NewRouter(cfg, handler)
 

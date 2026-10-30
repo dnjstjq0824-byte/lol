@@ -1,10 +1,13 @@
 <template>
-  <div class="relative w-full max-w-2xl mx-auto">
+  <div class="relative w-full max-w-2xl mx-auto" ref="searchContainer">
     <div class="relative flex items-center">
       <input
         v-model="query"
         @input="handleInput"
-        @keydown.enter="submitSearch"
+        @keydown.enter="handleEnter"
+        @keydown.down.prevent="navigateDown"
+        @keydown.up.prevent="navigateUp"
+        @keydown.esc="isFocused = false"
         @focus="isFocused = true"
         type="text"
         placeholder="소환사명 + #태그 (예: Hide on bush#KR1, Faker#KR1)"
@@ -35,10 +38,10 @@
       <div v-if="suggestions.summoners.length > 0" class="p-2">
         <div class="text-[11px] font-bold text-gray-400 px-3 py-1 uppercase tracking-wider">소환사</div>
         <div
-          v-for="s in suggestions.summoners"
+          v-for="(s, idx) in suggestions.summoners"
           :key="s.puuid"
           @mousedown="selectSummoner(s)"
-          class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-[#1F2937] cursor-pointer transition"
+          :class="['flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition', selectedIndex === idx ? 'bg-[#1F2937] border-l-4 border-cyan-400' : 'hover:bg-[#1F2937]/70']"
         >
           <div class="flex items-center space-x-3">
             <span class="w-8 h-8 rounded-full bg-cyan-950 border border-cyan-800 text-cyan-400 flex items-center justify-center font-bold text-xs">
@@ -57,10 +60,10 @@
       <div v-if="suggestions.champions.length > 0" class="p-2">
         <div class="text-[11px] font-bold text-gray-400 px-3 py-1 uppercase tracking-wider">챔피언</div>
         <div
-          v-for="c in suggestions.champions"
+          v-for="(c, idx) in suggestions.champions"
           :key="c.championId"
           @mousedown="selectChampion(c)"
-          class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-[#1F2937] cursor-pointer transition"
+          :class="['flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition', selectedIndex === (suggestions.summoners.length + idx) ? 'bg-[#1F2937] border-l-4 border-cyan-400' : 'hover:bg-[#1F2937]/70']"
         >
           <div class="flex items-center space-x-3">
             <span class="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-300">
@@ -79,15 +82,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const query = ref('')
 const isFocused = ref(false)
+const selectedIndex = ref(-1)
 const suggestions = ref<{ summoners: any[]; champions: any[] }>({ summoners: [], champions: [] })
+const searchContainer = ref<HTMLElement | null>(null)
 
 const handleInput = async () => {
+  selectedIndex.value = -1
   if (query.value.trim().length === 0) {
     suggestions.value = { summoners: [], champions: [] }
     return
@@ -98,33 +104,78 @@ const handleInput = async () => {
       const data = await res.json()
       suggestions.value = data
     }
-  } catch (err) {
-    console.error(err)
+  } catch (e) {
+    console.error(e)
   }
 }
 
-const submitSearch = () => {
-  if (!query.value.trim()) return
-  isFocused.value = false
-  let raw = query.value.trim()
-  let gameName = raw
-  let tagLine = 'KR1'
-  if (raw.includes('#')) {
-    const parts = raw.split('#')
-    gameName = parts[0]
-    tagLine = parts[1] || 'KR1'
+const totalSuggestions = () => suggestions.value.summoners.length + suggestions.value.champions.length
+
+const navigateDown = () => {
+  const total = totalSuggestions()
+  if (total === 0) return
+  selectedIndex.value = (selectedIndex.value + 1) % total
+}
+
+const navigateUp = () => {
+  const total = totalSuggestions()
+  if (total === 0) return
+  selectedIndex.value = (selectedIndex.value - 1 + total) % total
+}
+
+const handleEnter = () => {
+  const total = totalSuggestions()
+  if (selectedIndex.value >= 0 && selectedIndex.value < total) {
+    if (selectedIndex.value < suggestions.value.summoners.length) {
+      selectSummoner(suggestions.value.summoners[selectedIndex.value])
+    } else {
+      const champIndex = selectedIndex.value - suggestions.value.summoners.length
+      selectChampion(suggestions.value.champions[champIndex])
+    }
+    return
   }
-  router.push(`/summoners/KR/${encodeURIComponent(gameName)}-${encodeURIComponent(tagLine)}`)
+  submitSearch()
 }
 
 const selectSummoner = (s: any) => {
   isFocused.value = false
-  router.push(`/summoners/${s.region}/${encodeURIComponent(s.gameName)}-${encodeURIComponent(s.tagLine)}`)
+  router.push(`/summoners/${s.region || 'KR'}/${s.gameName}-${s.tagLine}`)
 }
 
 const selectChampion = (c: any) => {
   isFocused.value = false
   router.push(`/champions/${c.key}`)
 }
-</script>
 
+const submitSearch = () => {
+  if (!query.value.trim()) return
+  isFocused.value = false
+
+  let val = query.value.trim()
+  let region = 'KR'
+  let gameName = val
+  let tagLine = 'KR1'
+
+  if (val.includes('#')) {
+    const parts = val.split('#')
+    gameName = parts[0].trim()
+    tagLine = parts[1].trim()
+  }
+
+  router.push(`/summoners/${region}/${gameName}-${tagLine}`)
+}
+
+const handleClickOutside = (e: MouseEvent) => {
+  if (searchContainer.value && !searchContainer.value.contains(e.target as Node)) {
+    isFocused.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+</script>

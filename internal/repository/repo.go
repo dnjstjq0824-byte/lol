@@ -11,6 +11,8 @@ import (
 
 	"bn-riftstats/internal/analytics"
 	"bn-riftstats/internal/domain"
+	"bn-riftstats/internal/repository/cache"
+	"bn-riftstats/internal/repository/postgres"
 	"bn-riftstats/internal/riotclient"
 )
 
@@ -26,6 +28,8 @@ type Repository struct {
 	passwords    map[string]string // email -> hashed pass
 	favorites    map[uuid.UUID][]domain.FavoriteItem // userID -> favorites
 	totalMatches int
+	pgRepo       *postgres.PostgresRepo
+	redisCache   *cache.RedisCache
 }
 
 func NewRepository(ddragon *riotclient.DDragonManager) *Repository {
@@ -43,6 +47,18 @@ func NewRepository(ddragon *riotclient.DDragonManager) *Repository {
 	}
 	repo.seedInitialData()
 	return repo
+}
+
+func (r *Repository) SetPostgres(pg *postgres.PostgresRepo) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.pgRepo = pg
+}
+
+func (r *Repository) SetRedis(rc *cache.RedisCache) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.redisCache = rc
 }
 
 func (r *Repository) seedInitialData() {
@@ -357,7 +373,15 @@ func (r *Repository) SearchAutocomplete(ctx context.Context, query string) (*dom
 
 func (r *Repository) AuthenticateUser(email, password string) (*domain.UserProfileDto, error) {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
+	if r.pgRepo != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		profile, _, err := r.pgRepo.GetUserByEmail(ctx, email)
+		cancel()
+		if err == nil && profile != nil {
+			r.mu.RUnlock()
+			return profile, nil
+		}
+	}
 
 	user, ok := r.users[email]
 	if !ok {
@@ -369,6 +393,11 @@ func (r *Repository) AuthenticateUser(email, password string) (*domain.UserProfi
 			DisplayName: strings.Split(email, "@")[0],
 			Role:        "USER",
 		}
+		if r.pgRepo != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			_, _ = r.pgRepo.UpsertUser(ctx, email, password, newUser.DisplayName, newUser.Role)
+			cancel()
+		}
 		r.mu.RUnlock()
 		r.mu.Lock()
 		r.users[email] = newUser
@@ -376,6 +405,7 @@ func (r *Repository) AuthenticateUser(email, password string) (*domain.UserProfi
 		r.mu.Unlock()
 		return newUser, nil
 	}
+	r.mu.RUnlock()
 	return user, nil
 }
 
@@ -393,6 +423,15 @@ func (r *Repository) GetUserByID(userID uuid.UUID) (*domain.UserProfileDto, erro
 
 func (r *Repository) ListFavorites(userID uuid.UUID) []domain.FavoriteItem {
 	r.mu.RLock()
+	if r.pgRepo != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		favs, err := r.pgRepo.GetFavorites(ctx, userID)
+		cancel()
+		if err == nil {
+			r.mu.RUnlock()
+			return favs
+		}
+	}
 	defer r.mu.RUnlock()
 
 	favs, ok := r.favorites[userID]
@@ -421,6 +460,12 @@ func (r *Repository) AddFavorite(userID uuid.UUID, fav domain.CreateFavoriteRequ
 	} else {
 		item.GameName = "Hide on bush"
 		item.TagLine = "KR1"
+	}
+
+	if r.pgRepo != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		_ = r.pgRepo.AddFavorite(ctx, userID, item)
+		cancel()
 	}
 
 	r.favorites[userID] = append(r.favorites[userID], item)
