@@ -1,0 +1,11 @@
+{
+  "name": "bn-riftstats-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "pnpm --filter bn-riftstats-web build",
+    "web:dev": "pnpm --filter bn-riftstats-web dev",
+    "web:build": "pnpm --filter bn-riftstats-web build",
+    "web:preview": "pnpm --filter bn-riftstats-web preview"
+  }
+}
