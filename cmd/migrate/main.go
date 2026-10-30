@@ -45,3 +45,4 @@ func main() {
 	log.Printf("Migration completed successfully in %v.\n", time.Since(start))
 	fmt.Println("All 50 canonical tables and indexes are ready.")
 }
+
