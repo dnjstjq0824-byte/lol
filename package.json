@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "pnpm --filter bn-riftstats-web build",
-    "web:dev": "pnpm --filter bn-riftstats-web dev",
-    "web:build": "pnpm --filter bn-riftstats-web build",
-    "web:preview": "pnpm --filter bn-riftstats-web preview"
+    "build": "npm --prefix web run build",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build",
+    "web:preview": "npm --prefix web run preview"
   }
 }
