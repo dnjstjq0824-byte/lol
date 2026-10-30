@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -18,7 +19,32 @@ type Config struct {
 	DDragonVersion string
 }
 
+func loadDotEnv() {
+	data, err := os.ReadFile(".env")
+	if err != nil {
+		return
+	}
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			k := strings.TrimSpace(parts[0])
+			v := strings.TrimSpace(parts[1])
+			v = strings.Trim(v, `"'`)
+			if os.Getenv(k) == "" {
+				_ = os.Setenv(k, v)
+			}
+		}
+	}
+}
+
 func Load() *Config {
+	loadDotEnv()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -36,7 +62,7 @@ func Load() *Config {
 		if riotKey == "" || len(riotKey) < 20 {
 			govMode = "DEV_PROTOTYPE_MODE"
 		} else {
-			govMode = "PRODUCTION_MODE"
+			govMode = "DEV_PROTOTYPE_MODE" // Default development key is 20req/1s
 		}
 	}
 
@@ -76,4 +102,3 @@ func (c *Config) PortInt() int {
 	}
 	return p
 }
-
