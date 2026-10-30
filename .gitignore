@@ -18,6 +18,9 @@ vendor/
 .env.*.local
 !.env.example
 
+# CI workflows (prevents GitHub OAuth workflow scope block)
+.github/
+
 # IDE
 .idea/
 .vscode/
