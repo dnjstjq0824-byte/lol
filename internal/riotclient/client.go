@@ -22,6 +22,15 @@ type Client struct {
 	limiter    *RateLimiter
 	ddragon    *DDragonManager
 	sfGroup    singleflight.Group
+	refresh    *refreshQueue
+	redis      RedisCacher
+}
+
+// RedisCacher is the minimal cache surface the client needs (satisfied by
+// *cache.RedisCache). It stays an interface so unit tests run without Redis.
+type RedisCacher interface {
+	Get(ctx context.Context, key string) (string, error)
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
 }
 
 func NewClient(cfg *config.Config) *Client {
@@ -32,7 +41,30 @@ func NewClient(cfg *config.Config) *Client {
 		},
 		limiter: NewRateLimiter(cfg.GovernorMode),
 		ddragon: NewDDragonManager(cfg.DDragonVersion),
+		refresh: newRefreshQueue(),
 	}
+}
+
+// SetRedis attaches the L2 cache used for match details and ladders.
+func (c *Client) SetRedis(rc RedisCacher) {
+	c.redis = rc
+}
+
+// PendingRefreshJobs reports the current ingestion queue depth.
+func (c *Client) PendingRefreshJobs() int {
+	if c.refresh == nil {
+		return 0
+	}
+	return c.refresh.Pending()
+}
+
+// RequestSummonerRefresh enqueues a refresh job with cooldown coalescing.
+func (c *Client) RequestSummonerRefresh(region, puuid string) (jobID string, cooldownSec int) {
+	if c.refresh == nil {
+		c.refresh = newRefreshQueue()
+	}
+	id, cd, _ := c.refresh.RequestRefresh(region, puuid)
+	return id, cd
 }
 
 func (c *Client) DDragon() *DDragonManager {
@@ -178,17 +210,22 @@ func (c *Client) GetSummonerProfile(ctx context.Context, region, puuid string) (
 	return val.(*domain.SummonerProfile), nil
 }
 
-// LEAGUE-V4: Get Ranked Stats by PUUID
+// LEAGUE-V4: Get Ranked Stats by PUUID (live first, fixture fallback)
 func (c *Client) GetRankedStats(ctx context.Context, region, puuid string) (*domain.RankedStats, error) {
-	_, err := ResolveRegion(region)
+	reg, err := ResolveRegion(region)
 	if err != nil {
 		return nil, err
+	}
+	if c.HasLiveKey() && !isSyntheticPuuid(puuid) {
+		if live, err := c.liveRankedStats(ctx, reg, puuid); err == nil {
+			return live, nil
+		}
 	}
 	return GenerateMockRankedStats(), nil
 }
 
-// MATCH-V5: Get Match History
-func (c *Client) GetMatchHistory(ctx context.Context, region, puuid string, count int) (*domain.MatchHistoryResponse, error) {
+// MATCH-V5: Get Match History (live first, fixture fallback)
+func (c *Client) GetMatchHistory(ctx context.Context, region, puuid string, start, count int) (*domain.MatchHistoryResponse, error) {
 	reg, err := ResolveRegion(region)
 	if err != nil {
 		return nil, err
@@ -197,19 +234,14 @@ func (c *Client) GetMatchHistory(ctx context.Context, region, puuid string, coun
 	if count <= 0 {
 		count = 20
 	}
+	if start < 0 {
+		start = 0
+	}
 
-	// Live Riot API MATCH-V5 ids lookup
-	if c.HasLiveKey() && !strings.HasPrefix(puuid, "puuid-") {
-		url := fmt.Sprintf("https://%s/lol/match/v5/matches/by-puuid/%s/ids?start=0&count=%d", reg.RegionalHost, puuid, count)
-		resp, err := c.executeLiveRequest(ctx, reg.PlatformID, url, PriorityP1)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			defer resp.Body.Close()
-			var matchIDs []string
-			if err := json.NewDecoder(resp.Body).Decode(&matchIDs); err == nil && len(matchIDs) > 0 {
-				// We can construct history from IDs or fallback to authentic generator
-			}
-		} else if resp != nil {
-			resp.Body.Close()
+	// Live Riot API MATCH-V5 resolution with full detail hydration
+	if c.HasLiveKey() && !isSyntheticPuuid(puuid) {
+		if live, err := c.liveMatchHistory(ctx, reg, puuid, start, count); err == nil {
+			return live, nil
 		}
 	}
 
@@ -262,11 +294,16 @@ func (c *Client) GetMatchHistory(ctx context.Context, region, puuid string, coun
 	}, nil
 }
 
-// MATCH-V5: Get Single Match Detail
+// MATCH-V5: Get Single Match Detail (live first, fixture fallback)
 func (c *Client) GetMatchDetail(ctx context.Context, region, matchID string) (*domain.MatchDetail, error) {
 	reg, err := ResolveRegion(region)
 	if err != nil {
 		return nil, err
+	}
+	if c.HasLiveKey() {
+		if live, err := c.fetchLiveMatchDetail(ctx, reg, matchID); err == nil {
+			return live, nil
+		}
 	}
 	matches := GenerateMockMatches(reg.UICode, "puuid-sample-1234", 1, c.ddragon)
 	if len(matches) > 0 {
@@ -371,11 +408,16 @@ func (c *Client) GetActiveGame(ctx context.Context, region, puuid string) (*doma
 	}, nil
 }
 
-// CHAMPION-MASTERY-V4
+// CHAMPION-MASTERY-V4 (live first, fixture fallback)
 func (c *Client) GetMasteries(ctx context.Context, region, puuid string) (*domain.MasteryListResponse, error) {
-	_, err := ResolveRegion(region)
+	reg, err := ResolveRegion(region)
 	if err != nil {
 		return nil, err
+	}
+	if c.HasLiveKey() && !isSyntheticPuuid(puuid) {
+		if live, err := c.liveMasteries(ctx, reg, puuid); err == nil {
+			return live, nil
+		}
 	}
 
 	masteries := []domain.ChampionMasteryDto{

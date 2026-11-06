@@ -17,6 +17,7 @@ import (
 	"bn-riftstats/internal/riotclient"
 	transport "bn-riftstats/internal/transport/http"
 	"bn-riftstats/internal/transport/http/handlers"
+	appMiddleware "bn-riftstats/internal/transport/http/middleware"
 )
 
 func main() {
@@ -28,6 +29,8 @@ func main() {
 
 	cfg := config.Load()
 	log.Printf("Starting in environment: %s | Governor Mode: %s\n", cfg.Environment, cfg.GovernorMode)
+	appMiddleware.InitSentry(cfg.SentryDSN, cfg.Environment)
+	defer appMiddleware.FlushSentry()
 
 	ctx := context.Background()
 
@@ -55,6 +58,15 @@ func main() {
 		}
 	}
 
+	// Seed admin credentials: production without ADMIN_PASSWORD gets a random
+	// one-time password printed once at boot; never a hardcoded default.
+	adminPassword := cfg.AdminPassword
+	if adminPassword == "" {
+		adminPassword = repository.GenerateRandomPassword()
+		log.Printf("[Security] ADMIN_PASSWORD unset: generated one-time admin password for %s: %s", cfg.AdminEmail, adminPassword)
+	}
+	repository.ConfigureSeedCredentials(cfg.AdminEmail, adminPassword)
+
 	client := riotclient.NewClient(cfg)
 	repo := repository.NewRepository(client.DDragon())
 	if pgDB != nil {
@@ -63,6 +75,7 @@ func main() {
 	}
 	if redisClient != nil {
 		repo.SetRedis(redisClient)
+		client.SetRedis(redisClient)
 		log.Println("[Repository] Redis 7.2 L2 cache layer activated")
 	}
 	handler := handlers.NewHandler(cfg, client, repo)

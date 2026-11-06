@@ -20,6 +20,46 @@ func NewPostgresRepo(db *DB) *PostgresRepo {
 	return &PostgresRepo{db: db}
 }
 
+// Ping verifies the underlying connection pool is usable.
+func (r *PostgresRepo) Ping(ctx context.Context) error {
+	if r == nil || r.db == nil {
+		return fmt.Errorf("postgres repo unavailable")
+	}
+	return r.db.Ping(ctx)
+}
+
+// UpsertSourceFreshness records a worker heartbeat for ops visibility.
+func (r *PostgresRepo) UpsertSourceFreshness(ctx context.Context, sourceKey, region, sourceType, version string, lagSec int, health string) error {
+	if r.db == nil || r.db.pool == nil {
+		return fmt.Errorf("postgres pool unavailable")
+	}
+	query := `
+		INSERT INTO source_freshness (source_key, platform_region, source_type, last_success_at, last_version_observed, lag_seconds, health_status, updated_at)
+		VALUES ($1, $2, $3, NOW(), $4, $5, $6, NOW())
+		ON CONFLICT (source_key) DO UPDATE
+		SET last_success_at = NOW(),
+		    last_version_observed = EXCLUDED.last_version_observed,
+		    lag_seconds = EXCLUDED.lag_seconds,
+		    health_status = EXCLUDED.health_status,
+		    updated_at = NOW();
+	`
+	_, err := r.db.pool.Exec(ctx, query, sourceKey, region, sourceType, version, lagSec, health)
+	return err
+}
+
+// InsertAnalyticsJob records a completed aggregation cycle.
+func (r *PostgresRepo) InsertAnalyticsJob(ctx context.Context, jobType, patch, region, status string, rowsProcessed int, errDetail string) error {
+	if r.db == nil || r.db.pool == nil {
+		return fmt.Errorf("postgres pool unavailable")
+	}
+	query := `
+		INSERT INTO analytics_jobs (job_type, patch_version, platform_region, status, rows_processed, started_at, completed_at, error_detail)
+		VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NULLIF($6, ''));
+	`
+	_, err := r.db.pool.Exec(ctx, query, jobType, patch, region, status, rowsProcessed, errDetail)
+	return err
+}
+
 // GetUserByEmail finds a user profile and their password hash
 func (r *PostgresRepo) GetUserByEmail(ctx context.Context, email string) (*domain.UserProfileDto, string, error) {
 	if r.db == nil || r.db.pool == nil {
@@ -199,5 +239,14 @@ func (r *PostgresRepo) AddFavorite(ctx context.Context, userID uuid.UUID, fav do
 		ON CONFLICT (user_id, target_type, platform_region, target_puuid, target_champion_id) DO NOTHING;
 	`
 	_, err := r.db.pool.Exec(ctx, query, userID, strings.ToUpper(fav.TargetType), puuidPtr, champIDPtr, fav.PlatformRegion)
+	return err
+}
+
+// DeleteFavorite removes one bookmark owned by the user.
+func (r *PostgresRepo) DeleteFavorite(ctx context.Context, userID, favoriteID uuid.UUID) error {
+	if r.db == nil || r.db.pool == nil {
+		return fmt.Errorf("postgres pool unavailable")
+	}
+	_, err := r.db.pool.Exec(ctx, `DELETE FROM favorites WHERE favorite_id = $1 AND user_id = $2;`, favoriteID, userID)
 	return err
 }

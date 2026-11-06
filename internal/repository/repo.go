@@ -2,12 +2,16 @@ package repository
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 
 	"bn-riftstats/internal/analytics"
 	"bn-riftstats/internal/domain"
@@ -15,6 +19,47 @@ import (
 	"bn-riftstats/internal/repository/postgres"
 	"bn-riftstats/internal/riotclient"
 )
+
+// Seed admin credentials. Overridden at startup via ConfigureSeedCredentials
+// from ADMIN_EMAIL / ADMIN_PASSWORD so production never uses the default.
+var (
+	seedAdminEmail    = "admin@riftstats.bn.io"
+	seedAdminPassword = "securepassword"
+)
+
+// ConfigureSeedCredentials sets the initial admin account before NewRepository.
+func ConfigureSeedCredentials(email, password string) {
+	if email != "" {
+		seedAdminEmail = strings.ToLower(strings.TrimSpace(email))
+	}
+	if password != "" {
+		seedAdminPassword = password
+	}
+}
+
+// GenerateRandomPassword creates a one-time initial admin password.
+func GenerateRandomPassword() string {
+	b := make([]byte, 24)
+	if _, err := rand.Read(b); err != nil {
+		return uuid.NewString()
+	}
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func hashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+func verifyPassword(hash, password string) bool {
+	if hash == "" || password == "" {
+		return false
+	}
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
+}
 
 type Repository struct {
 	mu           sync.RWMutex
@@ -62,16 +107,19 @@ func (r *Repository) SetRedis(rc *cache.RedisCache) {
 }
 
 func (r *Repository) seedInitialData() {
-	// Seed initial Admin & Test User
+	// Seed initial admin with a real bcrypt hash (credentials come from
+	// ADMIN_EMAIL / ADMIN_PASSWORD in production via ConfigureSeedCredentials).
 	adminID := uuid.New()
 	adminProfile := &domain.UserProfileDto{
 		UserID:      adminID,
-		Email:       "admin@riftstats.bn.io",
+		Email:       seedAdminEmail,
 		DisplayName: "SystemAdmin",
 		Role:        "SUPER_ADMIN",
 	}
 	r.users[adminProfile.Email] = adminProfile
-	r.passwords[adminProfile.Email] = "argon2id$mocked$hashedpassword12345"
+	if hash, err := hashPassword(seedAdminPassword); err == nil {
+		r.passwords[adminProfile.Email] = hash
+	}
 
 	// Seed Champion Tier List for 16.21
 	champData := []struct {
@@ -260,10 +308,19 @@ func (r *Repository) seedChampionSynergies(id int, key, pos string) {
 }
 
 func (r *Repository) GetTierList(ctx context.Context, region, tierBracket, patch string) (*domain.ChampionTierListResponse, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	k := fmt.Sprintf("%s:%s:%s", region, tierBracket, patch)
+
+	// L2 cache: serve hot tier lists from Redis when connected.
+	if r.redisCache != nil {
+		if raw, err := r.redisCache.Get(ctx, "rift:tier:"+k); err == nil && raw != "" {
+			var cached domain.ChampionTierListResponse
+			if json.Unmarshal([]byte(raw), &cached) == nil && len(cached.Entries) > 0 {
+				return &cached, nil
+			}
+		}
+	}
+
+	r.mu.RLock()
 	entries, ok := r.tierLists[k]
 	if !ok {
 		// Fallback to GLOBAL
@@ -274,15 +331,48 @@ func (r *Repository) GetTierList(ctx context.Context, region, tierBracket, patch
 			entries = r.tierLists[k]
 		}
 	}
+	total := r.totalMatches
+	r.mu.RUnlock()
 
-	return &domain.ChampionTierListResponse{
+	resp := &domain.ChampionTierListResponse{
 		PatchVersion:         patch,
 		Region:               region,
 		TierBracket:          tierBracket,
-		TotalAnalyzedMatches: r.totalMatches,
+		TotalAnalyzedMatches: total,
 		LastUpdatedAt:        time.Now().Add(-5 * time.Minute),
 		Entries:              entries,
-	}, nil
+	}
+	if r.redisCache != nil {
+		if raw, err := json.Marshal(resp); err == nil {
+			_ = r.redisCache.Set(ctx, "rift:tier:"+k, raw, 5*time.Minute)
+		}
+	}
+	return resp, nil
+}
+
+// HealthStatus pings the connected persistence layers. Each return value is
+// one of CONNECTED, STANDBY (not configured), or DOWN (configured but failing).
+func (r *Repository) HealthStatus(ctx context.Context) (postgres, redis string) {
+	postgres, redis = "STANDBY", "STANDBY"
+	if r.pgRepo != nil {
+		pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		if err := r.pgRepo.Ping(pingCtx); err == nil {
+			postgres = "CONNECTED"
+		} else {
+			postgres = "DOWN"
+		}
+		cancel()
+	}
+	if r.redisCache != nil {
+		pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		if err := r.redisCache.Ping(pingCtx); err == nil {
+			redis = "CONNECTED"
+		} else {
+			redis = "DOWN"
+		}
+		cancel()
+	}
+	return postgres, redis
 }
 
 func (r *Repository) GetChampionBuild(ctx context.Context, champKey, pos, patch string) (*domain.ChampionBuildResponse, error) {
@@ -372,41 +462,131 @@ func (r *Repository) SearchAutocomplete(ctx context.Context, query string) (*dom
 }
 
 func (r *Repository) AuthenticateUser(email, password string) (*domain.UserProfileDto, error) {
-	r.mu.RLock()
+	email = strings.ToLower(strings.TrimSpace(email))
+	if email == "" || password == "" {
+		return nil, fmt.Errorf("email and password are required")
+	}
+
+	// PostgreSQL is the source of truth when connected.
 	if r.pgRepo != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		profile, _, err := r.pgRepo.GetUserByEmail(ctx, email)
+		profile, hash, err := r.pgRepo.GetUserByEmail(ctx, email)
 		cancel()
 		if err == nil && profile != nil {
-			r.mu.RUnlock()
+			if !verifyPassword(hash, password) {
+				return nil, fmt.Errorf("invalid email or password")
+			}
 			return profile, nil
 		}
 	}
 
+	r.mu.RLock()
 	user, ok := r.users[email]
-	if !ok {
-		// Mock auto-register for testing if user doesn't exist
-		newID := uuid.New()
-		newUser := &domain.UserProfileDto{
-			UserID:      newID,
-			Email:       email,
-			DisplayName: strings.Split(email, "@")[0],
-			Role:        "USER",
+	hash := r.passwords[email]
+	r.mu.RUnlock()
+	if !ok || user == nil {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+	if !verifyPassword(hash, password) {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+	return user, nil
+}
+
+// RegisterUser creates a new USER-role account with a bcrypt-hashed password.
+func (r *Repository) RegisterUser(email, password, displayName string) (*domain.UserProfileDto, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	displayName = strings.TrimSpace(displayName)
+	if !strings.Contains(email, "@") || len(email) < 5 || len(email) > 254 {
+		return nil, fmt.Errorf("invalid email address")
+	}
+	if len(password) < 8 || len(password) > 128 {
+		return nil, fmt.Errorf("password must be 8-128 characters")
+	}
+	if displayName == "" {
+		displayName = strings.Split(email, "@")[0]
+	}
+
+	r.mu.RLock()
+	_, exists := r.users[email]
+	r.mu.RUnlock()
+	if exists {
+		return nil, fmt.Errorf("email already registered")
+	}
+	if r.pgRepo != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		existing, _, err := r.pgRepo.GetUserByEmail(ctx, email)
+		cancel()
+		if err == nil && existing != nil {
+			return nil, fmt.Errorf("email already registered")
 		}
-		if r.pgRepo != nil {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			_, _ = r.pgRepo.UpsertUser(ctx, email, password, newUser.DisplayName, newUser.Role)
-			cancel()
+	}
+
+	hash, err := hashPassword(password)
+	if err != nil {
+		return nil, fmt.Errorf("password hashing failed: %w", err)
+	}
+
+	profile := &domain.UserProfileDto{
+		UserID:      uuid.New(),
+		Email:       email,
+		DisplayName: displayName,
+		Role:        "USER",
+	}
+	if r.pgRepo != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		stored, err := r.pgRepo.UpsertUser(ctx, email, hash, displayName, profile.Role)
+		cancel()
+		if err != nil {
+			return nil, fmt.Errorf("account persistence failed: %w", err)
 		}
+		profile = stored
+	}
+
+	r.mu.Lock()
+	r.users[email] = profile
+	r.passwords[email] = hash
+	r.mu.Unlock()
+	return profile, nil
+}
+
+// UpsertOAuthUser provisions (or returns) an account authenticated by an
+// external identity provider such as Google. OAuth accounts carry no local
+// password, so password login is impossible for them.
+func (r *Repository) UpsertOAuthUser(email, displayName string) (*domain.UserProfileDto, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if !strings.Contains(email, "@") {
+		return nil, fmt.Errorf("invalid email address")
+	}
+	if strings.TrimSpace(displayName) == "" {
+		displayName = strings.Split(email, "@")[0]
+	}
+
+	r.mu.RLock()
+	if user, ok := r.users[email]; ok && user != nil {
 		r.mu.RUnlock()
-		r.mu.Lock()
-		r.users[email] = newUser
-		r.passwords[email] = password
-		r.mu.Unlock()
-		return newUser, nil
+		return user, nil
 	}
 	r.mu.RUnlock()
-	return user, nil
+
+	profile := &domain.UserProfileDto{
+		UserID:      uuid.New(),
+		Email:       email,
+		DisplayName: strings.TrimSpace(displayName),
+		Role:        "USER",
+	}
+	if r.pgRepo != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		stored, err := r.pgRepo.UpsertUser(ctx, email, "oauth2:external", profile.DisplayName, profile.Role)
+		cancel()
+		if err == nil {
+			profile = stored
+		}
+	}
+	r.mu.Lock()
+	r.users[email] = profile
+	r.mu.Unlock()
+	return profile, nil
 }
 
 func (r *Repository) GetUserByID(userID uuid.UUID) (*domain.UserProfileDto, error) {
@@ -472,9 +652,55 @@ func (r *Repository) AddFavorite(userID uuid.UUID, fav domain.CreateFavoriteRequ
 	return &item, nil
 }
 
+// RemoveFavorite deletes a bookmark owned by the user.
+func (r *Repository) RemoveFavorite(userID, favoriteID uuid.UUID) bool {
+	if r.pgRepo != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		_ = r.pgRepo.DeleteFavorite(ctx, userID, favoriteID)
+		cancel()
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	list := r.favorites[userID]
+	for i, f := range list {
+		if f.FavoriteID == favoriteID {
+			r.favorites[userID] = append(list[:i], list[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
 func (r *Repository) TotalMatches() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.totalMatches
+}
+
+// RecalculateTierGrades re-derives every cached tier score from its stored
+// win/pick/ban rates using the Wilson shrinkage engine. The aggregator runs
+// this on schedule so served grades always reflect the current inputs.
+// It returns the number of slices processed and how many grades changed.
+func (r *Repository) RecalculateTierGrades() (processed, changed int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for key, entries := range r.tierLists {
+		for i, e := range entries {
+			wins := int(e.WinRate / 100.0 * float64(e.SampleSize))
+			wilsonWR := analytics.WilsonScoreLowerBound(wins, e.SampleSize)
+			score := analytics.CalculateCompositeScore(wilsonWR, e.PickRate, e.BanRate, 50.0, 2.5, 12.0, 3.5, 10.0, 5.0)
+			grade := analytics.ClassifyTierGrade(score, e.PickRate)
+			quality := analytics.ClassifySampleQuality(e.SampleSize)
+			if grade != e.TierGrade {
+				changed++
+			}
+			entries[i].Score = score
+			entries[i].TierGrade = grade
+			entries[i].SampleQuality = quality
+			processed++
+		}
+		r.tierLists[key] = entries
+	}
+	return processed, changed
 }
 

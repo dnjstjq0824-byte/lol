@@ -54,8 +54,24 @@
       </div>
     </div>
 
+    <div v-if="loadError" class="bg-rose-950/50 border border-rose-800 rounded-xl p-4 flex items-center justify-between gap-4">
+      <div class="text-xs text-rose-200 font-semibold">{{ loadError }}</div>
+      <button @click="loadTierList" class="px-3 py-1.5 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-bold transition shrink-0">
+        다시 시도
+      </button>
+    </div>
+
+    <div v-if="loading" class="space-y-2">
+      <div v-for="i in 6" :key="i" class="skeleton-shimmer h-12 rounded-xl"></div>
+    </div>
+
+    <div v-else-if="filteredAndSortedEntries.length === 0" class="bg-rift-card border border-rift-border rounded-xl p-10 text-center">
+      <div class="text-base font-bold text-white">조건에 맞는 챔피언이 없습니다</div>
+      <p class="text-xs text-gray-400 mt-1">검색어나 필터를 바꿔 다시 시도하세요.</p>
+    </div>
+
     <!-- Tier Table -->
-    <div class="bg-rift-card border border-rift-border rounded-xl shadow-xl overflow-x-auto">
+    <div v-else class="bg-rift-card border border-rift-border rounded-xl shadow-xl overflow-x-auto">
       <table class="w-full text-left text-xs">
         <thead class="bg-[#161F30] border-b border-rift-border text-gray-400 font-bold uppercase tracking-wider select-none">
           <tr>
@@ -88,8 +104,15 @@
           >
             <td class="py-3.5 px-4 font-bold text-gray-400">{{ entry.rank }}</td>
             <td class="py-3.5 px-4 font-bold text-white flex items-center space-x-3">
-              <span class="w-8 h-8 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-xs font-bold text-cyan-400">
+              <span class="relative w-8 h-8 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-xs font-bold text-cyan-400 overflow-hidden">
                 {{ entry.championName.charAt(0) }}
+                <img
+                  :src="championIconUrl(entry.championKey)"
+                  :alt="entry.championName"
+                  loading="lazy"
+                  class="absolute inset-0 w-full h-full object-cover"
+                  @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"
+                />
               </span>
               <div>
                 <div>{{ entry.championName }}</div>
@@ -125,8 +148,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import type { ChampionTierEntry } from '@/types'
+import { championIconUrl } from '@/lib/ddragon'
 
 const entries = ref<ChampionTierEntry[]>([])
+const loading = ref(true)
+const loadError = ref('')
 const selectedRole = ref('ALL')
 const selectedBracket = ref('EMERALD_PLUS')
 const searchQuery = ref('')
@@ -153,14 +179,21 @@ const toggleSort = (key: 'rank' | 'score' | 'winRate' | 'pickRate' | 'banRate') 
 }
 
 const loadTierList = async () => {
+  loading.value = true
+  loadError.value = ''
   try {
     const res = await fetch(`/api/v1/champions/tier-list?region=GLOBAL&tier=${selectedBracket.value}&patch=16.21`)
     if (res.ok) {
       const data = await res.json()
       entries.value = data.entries || []
+    } else {
+      throw new Error('티어 리스트를 불러오지 못했습니다.')
     }
   } catch (e) {
     console.error(e)
+    loadError.value = e instanceof Error ? e.message : '티어 리스트를 불러오지 못했습니다.'
+  } finally {
+    loading.value = false
   }
 }
 
@@ -195,6 +228,7 @@ const filteredAndSortedEntries = computed(() => {
 })
 
 onMounted(() => {
+  document.title = '챔피언 순위 · BN RiftStats'
   loadTierList()
 })
 </script>

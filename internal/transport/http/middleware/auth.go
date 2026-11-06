@@ -78,6 +78,33 @@ func RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// RequireRole enforces RBAC: the caller must be authenticated and hold one
+// of the given roles (e.g. SUPER_ADMIN, ADMIN).
+func RequireRole(roles ...string) func(http.HandlerFunc) http.HandlerFunc {
+	allowed := make(map[string]struct{}, len(roles))
+	for _, r := range roles {
+		allowed[r] = struct{}{}
+	}
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			claims, ok := r.Context().Value(UserContextKey).(*Claims)
+			if !ok || claims == nil {
+				w.Header().Set("Content-Type", "application/problem+json")
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte(`{"type":"https://api.riftstats.bn.io/errors/unauthorized","title":"Unauthorized","status":401,"detail":"Valid Bearer [REDACTED] required"}`))
+				return
+			}
+			if _, ok := allowed[claims.Role]; !ok {
+				w.Header().Set("Content-Type", "application/problem+json")
+				w.WriteHeader(http.StatusForbidden)
+				w.Write([]byte(`{"type":"https://api.riftstats.bn.io/errors/forbidden","title":"Forbidden","status":403,"detail":"This endpoint requires an administrator role"}`))
+				return
+			}
+			next(w, r)
+		}
+	}
+}
+
 func GetUserFromContext(ctx context.Context) *Claims {
 	if c, ok := ctx.Value(UserContextKey).(*Claims); ok {
 		return c

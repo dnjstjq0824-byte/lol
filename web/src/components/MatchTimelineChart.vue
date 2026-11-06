@@ -90,23 +90,56 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 
 const props = withDefaults(
   defineProps<{
     gameDurationSec?: number
     isBlueWin?: boolean
+    matchId?: string
+    region?: string
   }>(),
   {
     gameDurationSec: 1680,
     isBlueWin: true,
+    matchId: '',
+    region: 'KR',
   }
 )
 
 const durationMinutes = computed(() => Math.floor(props.gameDurationSec / 60))
 
-// Generate realistic gold difference curve based on duration and winner
+interface TimelineFrame {
+  minute: number
+  goldDiff: Record<string, number>
+  xpDiff: Record<string, number>
+  events: string[]
+}
+
+const liveFrames = ref<TimelineFrame[] | null>(null)
+
+onMounted(async () => {
+  if (!props.matchId) return
+  try {
+    const res = await fetch(`/api/v1/matches/${props.region}/${encodeURIComponent(props.matchId)}/timeline`)
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data.frames) && data.frames.length > 0) liveFrames.value = data.frames
+    }
+  } catch (e) {
+    console.error(e)
+  }
+})
+
+// Prefer live per-minute gold differentials; fall back to a duration-based
+// curve only when the timeline endpoint is unreachable.
 const timelineData = computed(() => {
+  if (liveFrames.value) {
+    return liveFrames.value.map((f) => ({
+      minute: f.minute,
+      goldDiff: Object.values(f.goldDiff || {}).reduce((a, b) => a + (b || 0), 0),
+    }))
+  }
   const points = []
   const maxMin = Math.max(durationMinutes.value, 15)
   const step = Math.max(Math.floor(maxMin / 10), 2)
@@ -162,13 +195,40 @@ const redAreaPath = computed(() => {
 const eventMarkers = computed(() => {
   const maxMin = Math.max(durationMinutes.value, 15)
   const calcX = (m: number) => (m / maxMin) * 580 + 10
+  const winner = props.isBlueWin ? 100 : 200
+  const winnerName = props.isBlueWin ? '블루팀' : '레드팀'
+
+  if (liveFrames.value) {
+    const markers: Array<{ id: number; minute: number; icon: string; label: string; team: number; teamName: string; x: number; y: number }> = []
+    let id = 0
+    for (const f of liveFrames.value) {
+      for (const evt of f.events || []) {
+        const upper = evt.toUpperCase()
+        const icon = upper.includes('BARON') ? '👑' : upper.includes('DRAGON') ? '🐉' : upper.includes('HERALD') ? '👾' : upper.includes('TOWER') ? '🏰' : '⚔️'
+        const team = upper.includes('RED') ? 200 : 100
+        id += 1
+        markers.push({
+          id,
+          minute: f.minute,
+          icon,
+          label: evt.length > 28 ? evt.slice(0, 28) + '…' : evt,
+          team,
+          teamName: team === 100 ? '블루팀' : '레드팀',
+          x: calcX(f.minute),
+          y: 78 - Math.min(id * 7, 40),
+        })
+        if (markers.length >= 5) return markers
+      }
+    }
+    if (markers.length > 0) return markers
+  }
 
   return [
-    { id: 1, minute: 3, icon: '⚔️', label: '퍼스트 블러드', team: props.isBlueWin ? 100 : 200, teamName: props.isBlueWin ? '블루팀' : '레드팀', x: calcX(3), y: 75 },
-    { id: 2, minute: 7, icon: '🐉', label: '바람의 드래곤', team: props.isBlueWin ? 100 : 200, teamName: props.isBlueWin ? '블루팀' : '레드팀', x: calcX(7), y: 65 },
-    { id: 3, minute: 9, icon: '👾', label: '공허 유충 (3스택)', team: props.isBlueWin ? 100 : 200, teamName: props.isBlueWin ? '블루팀' : '레드팀', x: calcX(9), y: 60 },
-    { id: 4, minute: 14, icon: '🏰', label: '첫 포탑 철거', team: props.isBlueWin ? 100 : 200, teamName: props.isBlueWin ? '블루팀' : '레드팀', x: calcX(14), y: 55 },
-    { id: 5, minute: 21, icon: '👑', label: '바론 내셔 처치', team: props.isBlueWin ? 100 : 200, teamName: props.isBlueWin ? '블루팀' : '레드팀', x: calcX(21), y: 40 },
+    { id: 1, minute: 3, icon: '⚔️', label: '퍼스트 블러드', team: winner, teamName: winnerName, x: calcX(3), y: 75 },
+    { id: 2, minute: 7, icon: '🐉', label: '바람의 드래곤', team: winner, teamName: winnerName, x: calcX(7), y: 65 },
+    { id: 3, minute: 9, icon: '👾', label: '공허 유충 (3스택)', team: winner, teamName: winnerName, x: calcX(9), y: 60 },
+    { id: 4, minute: 14, icon: '🏰', label: '첫 포탑 철거', team: winner, teamName: winnerName, x: calcX(14), y: 55 },
+    { id: 5, minute: 21, icon: '👑', label: '바론 내셔 처치', team: winner, teamName: winnerName, x: calcX(21), y: 40 },
   ]
 })
 </script>

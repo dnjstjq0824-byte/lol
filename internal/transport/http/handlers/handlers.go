@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"bn-riftstats/internal/config"
 	"bn-riftstats/internal/domain"
@@ -212,8 +213,19 @@ func (h *Handler) GetMatchHistory(w http.ResponseWriter, r *http.Request) {
 	if count <= 0 {
 		count = 20
 	}
+	if count > 100 {
+		count = 100
+	}
+	start, _ := strconv.Atoi(r.URL.Query().Get("start"))
+	if start < 0 {
+		start = 0
+	}
+	if strings.TrimSpace(puuid) == "" {
+		writeProblem(w, http.StatusBadRequest, "Invalid Request", "puuid is required")
+		return
+	}
 
-	history, err := h.client.GetMatchHistory(r.Context(), region, puuid, count)
+	history, err := h.client.GetMatchHistory(r.Context(), region, puuid, start, count)
 	if err != nil {
 		writeProblem(w, http.StatusInternalServerError, "Match History Failed", err.Error())
 		return
@@ -377,6 +389,12 @@ func (h *Handler) GetLeaderboards(w http.ResponseWriter, r *http.Request) {
 	if queue == "" {
 		queue = "420"
 	}
+	// Prefer the live Challenger ladder when a Riot key is active; the
+	// curated seed ladder stays as the offline fallback.
+	if live, err := h.client.GetChallengerLadder(r.Context(), region, queue); err == nil && live != nil {
+		writeJSON(w, http.StatusOK, live)
+		return
+	}
 	ladder, err := h.repo.GetLeaderboard(r.Context(), region, queue)
 	if err != nil {
 		writeProblem(w, http.StatusInternalServerError, "Leaderboard Failed", err.Error())
@@ -477,6 +495,10 @@ func (h *Handler) CreateFavorite(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, http.StatusBadRequest, "Invalid Request", err.Error())
 		return
 	}
+	if err := validateFavoriteRequest(&req); err != nil {
+		writeProblem(w, http.StatusBadRequest, "Invalid Request", err.Error())
+		return
+	}
 	fav, err := h.repo.AddFavorite(user.UserID, req)
 	if err != nil {
 		writeProblem(w, http.StatusInternalServerError, "Favorite Failed", err.Error())
@@ -485,11 +507,33 @@ func (h *Handler) CreateFavorite(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, fav)
 }
 
+func (h *Handler) DeleteFavorite(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUserFromContext(r.Context())
+	if user == nil {
+		writeProblem(w, http.StatusUnauthorized, "Unauthorized", "Authentication required")
+		return
+	}
+	favoriteID, err := uuid.Parse(chi.URLParam(r, "favoriteId"))
+	if err != nil {
+		writeProblem(w, http.StatusBadRequest, "Invalid Request", "favoriteId must be a UUID")
+		return
+	}
+	if !h.repo.RemoveFavorite(user.UserID, favoriteID) {
+		writeProblem(w, http.StatusNotFound, "Favorite Not Found", "No such favorite for this user")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // 22_Auth: POST /api/v1/auth/login
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req domain.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeProblem(w, http.StatusBadRequest, "Invalid Request", err.Error())
+		return
+	}
+	if strings.TrimSpace(req.Email) == "" || req.Password == "" {
+		writeProblem(w, http.StatusBadRequest, "Invalid Request", "email and password are required")
 		return
 	}
 
@@ -514,14 +558,20 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 // 23_Admin: GET /api/v1/admin/overview
 func (h *Handler) GetAdminOverview(w http.ResponseWriter, r *http.Request) {
 	buckets := h.client.Limiter().GetStatus()
+	gatewayStatus := "FIXTURE_MODE"
+	gatewayLag := 0
+	if h.client.HasLiveKey() {
+		gatewayStatus = "HEALTHY"
+		gatewayLag = 45
+	}
 	writeJSON(w, http.StatusOK, domain.AdminOverviewResponse{
 		RateLimitBuckets:    buckets,
-		IngestionQueueDepth: 12,
-		ActiveWorkersCount:  8,
+		IngestionQueueDepth: h.client.PendingRefreshJobs(),
+		ActiveWorkersCount:  len(buckets),
 		SourceFreshness: []domain.SourceFreshnessItem{
-			{SourceType: "RIOT_API_MATCH", Region: "KR", LastPolledAt: time.Now().Add(-45 * time.Second), Status: "HEALTHY", LagSeconds: 45},
-			{SourceType: "DATA_DRAGON", Region: "GLOBAL", LastPolledAt: time.Now().Add(-18 * time.Minute), Status: "UP_TO_DATE", LagSeconds: 1080},
-			{SourceType: "LEAGUE_LADDER", Region: "KR", LastPolledAt: time.Now().Add(-2 * time.Minute), Status: "HEALTHY", LagSeconds: 120},
+			{SourceType: "RIOT_API_MATCH", Region: "KR", LastPolledAt: time.Now().Add(-45 * time.Second), Status: gatewayStatus, LagSeconds: gatewayLag},
+			{SourceType: "DATA_DRAGON", Region: "GLOBAL", LastPolledAt: h.client.DDragon().LoadedAt(), Status: "UP_TO_DATE", LagSeconds: int(time.Since(h.client.DDragon().LoadedAt()).Seconds())},
+			{SourceType: "LEAGUE_LADDER", Region: "KR", LastPolledAt: time.Now().Add(-2 * time.Minute), Status: gatewayStatus, LagSeconds: 120},
 		},
 	})
 }
@@ -530,12 +580,17 @@ func (h *Handler) GetAdminOverview(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) TriggerSummonerRefresh(w http.ResponseWriter, r *http.Request) {
 	region := chi.URLParam(r, "region")
 	puuid := chi.URLParam(r, "puuid")
+	if strings.TrimSpace(puuid) == "" {
+		writeProblem(w, http.StatusBadRequest, "Invalid Request", "puuid is required")
+		return
+	}
 
-	// Trigger asynchronous refresh or acknowledge coalesced singleflight
+	// Enqueue a refresh job with 120s per-summoner cooldown coalescing.
+	jobID, cooldown := h.client.RequestSummonerRefresh(region, puuid)
 	writeJSON(w, http.StatusAccepted, domain.IngestionJobStatusDto{
-		JobID:                "job-" + region + "-" + puuid[:minInt(len(puuid), 12)],
+		JobID:                jobID,
 		Status:               "QUEUED",
-		CooldownRemainingSec: 120,
+		CooldownRemainingSec: cooldown,
 	})
 }
 
@@ -552,19 +607,23 @@ func (h *Handler) GetAnalyticsSummary(w http.ResponseWriter, r *http.Request) {
 
 // 26_Monitoring: GET /api/v1/monitoring/health
 func (h *Handler) GetSystemHealth(w http.ResponseWriter, r *http.Request) {
+	pg, redis := h.repo.HealthStatus(r.Context())
+	gateway := "FIXTURE_MODE"
+	if h.client.HasLiveKey() {
+		gateway = "LIVE"
+	}
+	status := "UP"
+	if pg == "DOWN" || redis == "DOWN" {
+		status = "DEGRADED"
+	}
 	writeJSON(w, http.StatusOK, domain.HealthStatusResponse{
-		Status:      "UP",
-		Postgres:    "CONNECTED",
-		Redis:       "CONNECTED",
-		OpenSearch:  "READY",
-		RiotGateway: "NORMAL",
+		Status:      status,
+		Postgres:    pg,
+		Redis:       redis,
+		OpenSearch:  "STANDBY",
+		RiotGateway: gateway,
 	})
 }
 
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
+
 

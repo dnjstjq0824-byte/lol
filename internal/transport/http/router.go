@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -22,14 +23,32 @@ func NewRouter(cfg *config.Config, h *handlers.Handler) *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(appMiddleware.SentryReporter)
+	r.Use(appMiddleware.SecurityHeaders)
+	r.Use(appMiddleware.NewIPRateLimiter(600).Middleware)
 
-	// CORS
+	// CORS: explicit allow-list from CORS_ALLOWED_ORIGINS. Credentials are
+	// only allowed with explicit origins (wildcard + credentials is rejected
+	// by browsers and unsafe). The SPA is served same-origin by default.
+	allowedOrigins := []string{}
+	allowCredentials := false
+	if origins := strings.TrimSpace(cfg.AllowedOrigins); origins != "" {
+		for _, o := range strings.Split(origins, ",") {
+			if o = strings.TrimSpace(o); o != "" {
+				allowedOrigins = append(allowedOrigins, o)
+			}
+		}
+		allowCredentials = len(allowedOrigins) > 0
+	}
+	if len(allowedOrigins) == 0 {
+		allowedOrigins = []string{"*"}
+	}
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Riot-Token"},
 		ExposedHeaders:   []string{"Link", "Retry-After", "X-Total-Count"},
-		AllowCredentials: true,
+		AllowCredentials: allowCredentials,
 		MaxAge:           300,
 	}))
 
@@ -90,10 +109,15 @@ func NewRouter(cfg *config.Config, h *handlers.Handler) *chi.Mux {
 		r.Get("/users/me", h.GetCurrentUser)
 		r.Get("/favorites", h.ListFavorites)
 		r.Post("/favorites", h.CreateFavorite)
+		r.Delete("/favorites/{favoriteId}", h.DeleteFavorite)
 		r.Post("/auth/login", h.Login)
+		r.Post("/auth/register", h.Register)
+		r.Get("/auth/oauth/google", h.GoogleOAuthStart)
+		r.Get("/auth/oauth/google/callback", h.GoogleOAuthCallback)
 
-		// 23_Admin
-		r.Get("/admin/overview", h.GetAdminOverview)
+		// 23_Admin (RBAC: administrators only)
+		adminOnly := appMiddleware.RequireRole("SUPER_ADMIN", "ADMIN")
+		r.Get("/admin/overview", adminOnly(h.GetAdminOverview))
 
 		// 24_DataIngestion & 25_Analytics
 		r.Post("/ingestion/summoners/{region}/{puuid}/refresh", h.TriggerSummonerRefresh)

@@ -197,12 +197,18 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import SpellPopover from '@/components/SpellPopover.vue'
 import RunePopover from '@/components/RunePopover.vue'
 
+const route = useRoute()
 const game = ref<any>(null)
 const elapsedSec = ref(742)
 const isRefreshing = ref(false)
+const loadError = ref('')
+// Deep-linkable target, e.g. /spectator?region=KR&puuid=<real-puuid>.
+const targetRegion = (route.query.region as string) || 'KR'
+const targetPuuid = (route.query.puuid as string) || 'puuid-sample-123'
 
 const positions = ['TOP', 'JUG', 'MID', 'ADC', 'SUP']
 
@@ -238,16 +244,22 @@ const redTeamList = computed(() => {
 })
 
 const fetchLive = async () => {
+  loadError.value = ''
   try {
-    const res = await fetch('/api/v1/spectator/KR/by-puuid/puuid-sample-123')
+    const res = await fetch(`/api/v1/spectator/${targetRegion}/by-puuid/${encodeURIComponent(targetPuuid)}`)
     if (res.ok) {
       game.value = await res.json()
       if (game.value?.gameLengthSec) {
         elapsedSec.value = game.value.gameLengthSec
       }
+    } else if (res.status === 404) {
+      game.value = { inGame: false, participants: [] }
+    } else {
+      throw new Error('실시간 게임 정보를 불러오지 못했습니다.')
     }
   } catch (e) {
     console.error(e)
+    loadError.value = e instanceof Error ? e.message : '실시간 게임 정보를 불러오지 못했습니다.'
   }
 }
 
@@ -261,6 +273,7 @@ const refreshLiveStatus = async () => {
 }
 
 onMounted(() => {
+  document.title = '실시간 인게임 · BN RiftStats'
   fetchLive()
 })
 </script>

@@ -57,7 +57,8 @@ func TestAll26EndpointGroups(t *testing.T) {
 		{"GET", "/api/v1/modes/arena/stats", http.StatusOK},
 		{"GET", "/api/v1/patches", http.StatusOK},
 		{"GET", "/api/v1/spectator/KR/by-puuid/puuid-test-123", http.StatusOK},
-		{"GET", "/api/v1/admin/overview", http.StatusOK},
+		// Admin console is RBAC-protected: anonymous callers get 401 (see TestAdminRBAC).
+		{"GET", "/api/v1/admin/overview", http.StatusUnauthorized},
 		{"POST", "/api/v1/ingestion/summoners/KR/puuid-test-123/refresh", http.StatusAccepted},
 		{"GET", "/api/v1/analytics/summary", http.StatusOK},
 		{"GET", "/api/v1/monitoring/health", http.StatusOK},
@@ -149,6 +150,193 @@ func TestAuthFlowAndProtection(t *testing.T) {
 
 	if recNoAuth.Code != http.StatusUnauthorized {
 		t.Fatalf("Expected 401 for unauthenticated /users/me, got %d", recNoAuth.Code)
+	}
+}
+
+func loginAs(t *testing.T, ts http.Handler, email, password string) string {
+	t.Helper()
+	body := strings.NewReader(`{"email":"` + email + `","password":"` + password + `"}`)
+	req := httptest.NewRequest("POST", "/api/v1/auth/login", body)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	ts.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Login as %s failed: %d, body: %s", email, rec.Code, rec.Body.String())
+	}
+	var authResp struct {
+		AccessToken string `json:"accessToken"`
+	}
+	_ = json.NewDecoder(rec.Body).Decode(&authResp)
+	if authResp.AccessToken == "" {
+		t.Fatalf("Expected access token for %s", email)
+	}
+	return authResp.AccessToken
+}
+
+func TestAdminRBAC(t *testing.T) {
+	ts := setupTestServer()
+
+	// 1. Anonymous -> 401
+	rec := httptest.NewRecorder()
+	ts.ServeHTTP(rec, httptest.NewRequest("GET", "/api/v1/admin/overview", nil))
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("Expected 401 for anonymous admin access, got %d", rec.Code)
+	}
+
+	// 2. Admin token -> 200 with real telemetry shape
+	adminToken := loginAs(t, ts, "admin@riftstats.bn.io", "securepassword")
+	reqAdmin := httptest.NewRequest("GET", "/api/v1/admin/overview", nil)
+	reqAdmin.Header.Set("Authorization", "Bearer "+adminToken)
+	recAdmin := httptest.NewRecorder()
+	ts.ServeHTTP(recAdmin, reqAdmin)
+	if recAdmin.Code != http.StatusOK {
+		t.Fatalf("Expected 200 for admin overview, got %d: %s", recAdmin.Code, recAdmin.Body.String())
+	}
+	var overview struct {
+		RateLimitBuckets []struct {
+			PlatformID string `json:"platformId"`
+		} `json:"rateLimitBuckets"`
+		IngestionQueueDepth int `json:"ingestionQueueDepth"`
+	}
+	if err := json.NewDecoder(recAdmin.Body).Decode(&overview); err != nil {
+		t.Fatalf("Failed decoding admin overview: %v", err)
+	}
+
+	// 3. Regular user -> 403
+	regBody := strings.NewReader(`{"email":"user1@example.com","password":"userpass123","displayName":"User1"}`)
+	reqReg := httptest.NewRequest("POST", "/api/v1/auth/register", regBody)
+	reqReg.Header.Set("Content-Type", "application/json")
+	recReg := httptest.NewRecorder()
+	ts.ServeHTTP(recReg, reqReg)
+	if recReg.Code != http.StatusCreated {
+		t.Fatalf("Expected 201 for registration, got %d: %s", recReg.Code, recReg.Body.String())
+	}
+	userToken := loginAs(t, ts, "user1@example.com", "userpass123")
+	reqUser := httptest.NewRequest("GET", "/api/v1/admin/overview", nil)
+	reqUser.Header.Set("Authorization", "Bearer "+userToken)
+	recUser := httptest.NewRecorder()
+	ts.ServeHTTP(recUser, reqUser)
+	if recUser.Code != http.StatusForbidden {
+		t.Fatalf("Expected 403 for non-admin overview access, got %d", recUser.Code)
+	}
+}
+
+func TestAuthPasswordVerification(t *testing.T) {
+	ts := setupTestServer()
+
+	// Register a user, then verify wrong passwords are rejected (no auto-login).
+	regBody := strings.NewReader(`{"email":"verify@example.com","password":"correct-horse-9","displayName":"Verify"}`)
+	reqReg := httptest.NewRequest("POST", "/api/v1/auth/register", regBody)
+	reqReg.Header.Set("Content-Type", "application/json")
+	recReg := httptest.NewRecorder()
+	ts.ServeHTTP(recReg, reqReg)
+	if recReg.Code != http.StatusCreated {
+		t.Fatalf("Expected 201 for registration, got %d: %s", recReg.Code, recReg.Body.String())
+	}
+
+	wrongBody := strings.NewReader(`{"email":"verify@example.com","password":"wrong-password"}`)
+	reqWrong := httptest.NewRequest("POST", "/api/v1/auth/login", wrongBody)
+	reqWrong.Header.Set("Content-Type", "application/json")
+	recWrong := httptest.NewRecorder()
+	ts.ServeHTTP(recWrong, reqWrong)
+	if recWrong.Code != http.StatusUnauthorized {
+		t.Fatalf("Expected 401 for wrong password, got %d", recWrong.Code)
+	}
+
+	// Unknown email must not auto-register.
+	ghostBody := strings.NewReader(`{"email":"ghost@example.com","password":"whatever123"}`)
+	reqGhost := httptest.NewRequest("POST", "/api/v1/auth/login", ghostBody)
+	reqGhost.Header.Set("Content-Type", "application/json")
+	recGhost := httptest.NewRecorder()
+	ts.ServeHTTP(recGhost, reqGhost)
+	if recGhost.Code != http.StatusUnauthorized {
+		t.Fatalf("Expected 401 for unknown email, got %d", recGhost.Code)
+	}
+
+	// Duplicate registration -> 409.
+	dupBody := strings.NewReader(`{"email":"verify@example.com","password":"another-pass-1"}`)
+	reqDup := httptest.NewRequest("POST", "/api/v1/auth/register", dupBody)
+	reqDup.Header.Set("Content-Type", "application/json")
+	recDup := httptest.NewRecorder()
+	ts.ServeHTTP(recDup, reqDup)
+	if recDup.Code != http.StatusConflict {
+		t.Fatalf("Expected 409 for duplicate registration, got %d", recDup.Code)
+	}
+
+	// Short password -> 400.
+	shortBody := strings.NewReader(`{"email":"short@example.com","password":"123"}`)
+	reqShort := httptest.NewRequest("POST", "/api/v1/auth/register", shortBody)
+	reqShort.Header.Set("Content-Type", "application/json")
+	recShort := httptest.NewRecorder()
+	ts.ServeHTTP(recShort, reqShort)
+	if recShort.Code != http.StatusBadRequest {
+		t.Fatalf("Expected 400 for short password, got %d", recShort.Code)
+	}
+}
+
+func TestFavoriteValidationAndRefreshCooldown(t *testing.T) {
+	ts := setupTestServer()
+	token := loginAs(t, ts, "admin@riftstats.bn.io", "securepassword")
+
+	// Invalid favorite payload -> 400.
+	badFav := strings.NewReader(`{"targetType":"BOGUS","platformRegion":"KR"}`)
+	reqBad := httptest.NewRequest("POST", "/api/v1/favorites", badFav)
+	reqBad.Header.Set("Content-Type", "application/json")
+	reqBad.Header.Set("Authorization", "Bearer "+token)
+	recBad := httptest.NewRecorder()
+	ts.ServeHTTP(recBad, reqBad)
+	if recBad.Code != http.StatusBadRequest {
+		t.Fatalf("Expected 400 for invalid favorite, got %d", recBad.Code)
+	}
+
+	// Valid favorite -> 201 and listed back.
+	goodFav := strings.NewReader(`{"targetType":"CHAMPION","platformRegion":"KR","targetChampionId":103}`)
+	reqGood := httptest.NewRequest("POST", "/api/v1/favorites", goodFav)
+	reqGood.Header.Set("Content-Type", "application/json")
+	reqGood.Header.Set("Authorization", "Bearer "+token)
+	recGood := httptest.NewRecorder()
+	ts.ServeHTTP(recGood, reqGood)
+	if recGood.Code != http.StatusCreated {
+		t.Fatalf("Expected 201 for valid favorite, got %d: %s", recGood.Code, recGood.Body.String())
+	}
+
+	// Refresh cooldown coalescing: two rapid calls return the same job.
+	var first, second struct {
+		JobID                string `json:"jobId"`
+		CooldownRemainingSec int    `json:"cooldownRemainingSec"`
+	}
+	for i, target := range []*struct {
+		JobID                string `json:"jobId"`
+		CooldownRemainingSec int    `json:"cooldownRemainingSec"`
+	}{&first, &second} {
+		_ = i
+		req := httptest.NewRequest("POST", "/api/v1/ingestion/summoners/KR/puuid-cooldown-test/refresh", nil)
+		rec := httptest.NewRecorder()
+		ts.ServeHTTP(rec, req)
+		if rec.Code != http.StatusAccepted {
+			t.Fatalf("Expected 202 for refresh, got %d", rec.Code)
+		}
+		if err := json.NewDecoder(rec.Body).Decode(target); err != nil {
+			t.Fatalf("Failed decoding refresh response: %v", err)
+		}
+	}
+	if first.JobID == "" || first.JobID != second.JobID {
+		t.Fatalf("Expected coalesced refresh job IDs, got %q and %q", first.JobID, second.JobID)
+	}
+	if second.CooldownRemainingSec <= 0 || second.CooldownRemainingSec > 120 {
+		t.Fatalf("Expected cooldown within (0,120], got %d", second.CooldownRemainingSec)
+	}
+}
+
+func TestSecurityHeadersPresent(t *testing.T) {
+	ts := setupTestServer()
+	req := httptest.NewRequest("GET", "/api/v1/regions", nil)
+	rec := httptest.NewRecorder()
+	ts.ServeHTTP(rec, req)
+	for _, h := range []string{"X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy"} {
+		if rec.Header().Get(h) == "" {
+			t.Fatalf("Expected security header %s to be set", h)
+		}
 	}
 }
 

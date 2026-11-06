@@ -2,6 +2,8 @@ package riotclient
 
 import (
 	"fmt"
+	"time"
+
 	"bn-riftstats/internal/domain"
 )
 
@@ -13,6 +15,7 @@ type DDragonManager struct {
 	Runes        map[int]string
 	Spells       map[int]string
 	Queues       map[int]string
+	loadedAt     time.Time
 }
 
 func NewDDragonManager(version string) *DDragonManager {
@@ -27,9 +30,18 @@ func NewDDragonManager(version string) *DDragonManager {
 		Runes:      make(map[int]string),
 		Spells:     make(map[int]string),
 		Queues:     make(map[int]string),
+		loadedAt:   time.Now(),
 	}
 	m.seedDataDragonData()
 	return m
+}
+
+// LoadedAt reports when the static data snapshot was loaded.
+func (m *DDragonManager) LoadedAt() time.Time {
+	if m.loadedAt.IsZero() {
+		return time.Now()
+	}
+	return m.loadedAt
 }
 
 func (m *DDragonManager) seedDataDragonData() {

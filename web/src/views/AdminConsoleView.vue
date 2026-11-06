@@ -16,35 +16,39 @@
       </button>
     </div>
 
+    <div v-if="loadError" class="bg-rose-950/50 border border-rose-800 rounded-xl p-4 text-xs text-rose-200 font-semibold">
+      {{ loadError }}
+    </div>
+
     <!-- Health Overview Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
       <div class="p-4 rounded-xl bg-rift-card border border-rift-border shadow-md">
         <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">PostgreSQL 16</div>
-        <div class="text-base font-black text-emerald-400 mt-1 flex items-center space-x-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span>CONNECTED (50 Tables)</span>
+        <div class="text-base font-black mt-1 flex items-center space-x-1.5" :class="healthColor(health?.postgres)">
+          <span class="w-2 h-2 rounded-full" :class="healthDot(health?.postgres)"></span>
+          <span>{{ health?.postgres || '...' }}</span>
         </div>
       </div>
 
       <div class="p-4 rounded-xl bg-rift-card border border-rift-border shadow-md">
         <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Redis 7.2 Cluster</div>
-        <div class="text-base font-black text-emerald-400 mt-1 flex items-center space-x-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span>CONNECTED</span>
+        <div class="text-base font-black mt-1 flex items-center space-x-1.5" :class="healthColor(health?.redis)">
+          <span class="w-2 h-2 rounded-full" :class="healthDot(health?.redis)"></span>
+          <span>{{ health?.redis || '...' }}</span>
         </div>
       </div>
 
       <div class="p-4 rounded-xl bg-rift-card border border-rift-border shadow-md">
         <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">수집 큐 대기 (Queue Depth)</div>
         <div class="text-base font-black text-cyan-400 mt-1">
-          {{ overview?.ingestionQueueDepth || 12 }}건
+          {{ overview?.ingestionQueueDepth ?? '...' }}건
         </div>
       </div>
 
       <div class="p-4 rounded-xl bg-rift-card border border-rift-border shadow-md">
-        <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">활성 수집 워커 (Active Workers)</div>
+        <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Riot Gateway</div>
         <div class="text-base font-black text-indigo-400 mt-1">
-          {{ overview?.activeWorkersCount || 8 }} Threads
+          {{ health?.riotGateway || '...' }}
         </div>
       </div>
     </div>
@@ -89,21 +93,34 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { apiJson, isApiError } from '@/lib/api'
 
 const overview = ref<any>(null)
+const health = ref<any>(null)
+const loadError = ref('')
+
+const healthColor = (state?: string) =>
+  state === 'CONNECTED' ? 'text-emerald-400' : state === 'DOWN' || state === 'DEGRADED' ? 'text-rose-400' : 'text-amber-400'
+const healthDot = (state?: string) =>
+  state === 'CONNECTED' ? 'bg-emerald-400' : state === 'DOWN' || state === 'DEGRADED' ? 'bg-rose-400' : 'bg-amber-400'
 
 const triggerHealthCheck = async () => {
+  loadError.value = ''
   try {
-    const res = await fetch('/api/v1/admin/overview')
-    if (res.ok) {
-      overview.value = await res.json()
-    }
+    const [ov, hp] = await Promise.all([
+      apiJson<any>('/api/v1/admin/overview'),
+      apiJson<any>('/api/v1/monitoring/health'),
+    ])
+    overview.value = ov
+    health.value = hp
   } catch (e) {
     console.error(e)
+    loadError.value = isApiError(e) ? `${e.title}: ${e.detail}` : '관리 지표를 불러오지 못했습니다.'
   }
 }
 
 onMounted(() => {
+  document.title = '관리자 콘솔 · BN RiftStats'
   triggerHealthCheck()
 })
 </script>

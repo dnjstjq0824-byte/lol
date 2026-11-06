@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
 	"time"
 
-	"bn-riftstats/internal/analytics"
 	"bn-riftstats/internal/config"
 	"bn-riftstats/internal/repository"
+	"bn-riftstats/internal/repository/postgres"
 	"bn-riftstats/internal/riotclient"
 )
 
@@ -16,20 +21,50 @@ func main() {
 	client := riotclient.NewClient(cfg)
 	repo := repository.NewRepository(client.DDragon())
 
-	log.Printf("Running Wilson Score Shrinkage Tier Engine for Patch %s\n", cfg.CurrentPatch)
-
-	// Test calculation
-	wilsonWR := analytics.WilsonScoreLowerBound(26400, 50000)
-	score := analytics.CalculateCompositeScore(wilsonWR, 12.4, 8.5, 50.0, 2.5, 12.0, 3.5, 10.0, 5.0)
-	grade := analytics.ClassifyTierGrade(score, 12.4)
-	quality := analytics.ClassifySampleQuality(50000)
-
-	log.Printf("Sample Ahri Calculation: Wilson WR=%.2f%%, Score=%.2f, Grade=%s, Quality=%s\n",
-		wilsonWR, score, grade, quality)
+	interval := 60 * time.Minute
+	if raw := os.Getenv("AGGREGATE_INTERVAL_MIN"); raw != "" {
+		if minutes, err := strconv.Atoi(raw); err == nil && minutes >= 1 {
+			interval = time.Duration(minutes) * time.Minute
+		}
+	}
+	log.Printf("Running Wilson Score Shrinkage Tier Engine for Patch %s (cycle: %v)\n", cfg.CurrentPatch, interval)
 	log.Printf("Total Matches in Ingestion Universe: %d\n", repo.TotalMatches())
 
-	ticker := time.NewTicker(60 * time.Minute)
-	defer ticker.Stop()
-	log.Println("Aggregator worker scheduled (60m cycle).")
-}
+	ctx := context.Background()
+	var pg *postgres.PostgresRepo
+	if cfg.DatabaseURL != "" {
+		if db, err := postgres.Connect(ctx, cfg.DatabaseURL); err != nil {
+			log.Printf("[Aggregator] PostgreSQL standby (%v); job records stay in logs only", err)
+		} else {
+			defer db.Close()
+			pg = postgres.NewPostgresRepo(db)
+		}
+	}
 
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	runCycle := func() {
+		processed, changed := repo.RecalculateTierGrades()
+		log.Printf("[Aggregator] Cycle complete: %d slices re-scored, %d grade changes (patch %s)",
+			processed, changed, cfg.CurrentPatch)
+		if pg != nil {
+			cycleCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+			_ = pg.InsertAnalyticsJob(cycleCtx, "TIER_RECALC", cfg.CurrentPatch, "GLOBAL", "COMPLETED", processed, "")
+		}
+	}
+
+	runCycle()
+	for {
+		select {
+		case <-ticker.C:
+			runCycle()
+		case <-quit:
+			log.Println("[Aggregator] Shutdown signal received, stopping.")
+			return
+		}
+	}
+}

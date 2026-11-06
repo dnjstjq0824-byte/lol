@@ -14,6 +14,31 @@ export interface RiotAccount {
   region: string;
 }
 
+export interface MostPlayedChampion {
+  championId: number;
+  championKey: string;
+  championName: string;
+  games: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  kda: number;
+  csPerMin: number;
+}
+
+export interface RecentlyPlayedWith {
+  puuid: string;
+  gameName: string;
+  tagLine: string;
+  games: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+}
+
 export interface SummonerProfile {
   account: RiotAccount;
   summonerLevel: number;
@@ -22,6 +47,20 @@ export interface SummonerProfile {
   topPercentile: number;
   lastUpdatedAt: string;
   nextRefreshAllowedAt: string;
+  mostPlayed: MostPlayedChampion[];
+  recentDuos: RecentlyPlayedWith[];
+}
+
+export interface FavoriteItem {
+  favoriteId: string;
+  targetType: string;
+  platformRegion: string;
+  targetPuuid?: string;
+  targetChampionId?: number;
+  gameName?: string;
+  tagLine?: string;
+  championName?: string;
+  createdAt: string;
 }
 
 export interface QueueRank {

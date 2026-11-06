@@ -18,6 +18,8 @@
           <span>Wilson Shrinkage 95% CI Analytics</span>
         </div>
         <div class="flex items-center space-x-4">
+          <router-link to="/terms" class="hover:text-gray-300 transition">이용약관</router-link>
+          <router-link to="/privacy" class="hover:text-gray-300 transition">개인정보처리방침</router-link>
           <span class="text-cyan-400">P95 &lt; 80ms</span>
           <span>CLS = 0.00</span>
           <span>Zero MMR Generation</span>

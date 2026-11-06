@@ -1,14 +1,16 @@
 module bn-riftstats
 
-go 1.27.0
+go 1.26.0
 
 require (
+	github.com/getsentry/sentry-go v0.35.1
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/cors v1.2.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/redis/go-redis/v9 v9.23.0
+	golang.org/x/crypto v0.45.0
 	golang.org/x/sync v0.24.0
 )
 

@@ -17,6 +17,17 @@ type Config struct {
 	JWTSecret      string
 	CurrentPatch   string
 	DDragonVersion string
+	// Comma-separated CORS origins. Empty = same-origin only (safest).
+	AllowedOrigins string
+	// Seed admin credentials (used when no admin exists yet).
+	AdminEmail    string
+	AdminPassword string
+	// Google OAuth2 (empty = social login disabled).
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURL  string
+	// Sentry error tracking (empty = disabled).
+	SentryDSN string
 }
 
 func loadDotEnv() {
@@ -81,17 +92,33 @@ func Load() *Config {
 		jwtSecret = "riftstats-super-secure-production-jwt-signing-secret-2026"
 	}
 
+	adminEmail := os.Getenv("ADMIN_EMAIL")
+	if adminEmail == "" {
+		adminEmail = "admin@riftstats.bn.io"
+	}
+	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	if adminPassword == "" && env != "production" {
+		adminPassword = "securepassword"
+	}
+
 	return &Config{
-		Port:           port,
-		Environment:    env,
-		RiotAPIKey:     riotKey,
-		GovernorMode:   govMode,
-		DatabaseURL:    dbURL,
-		RedisURL:       redisURL,
-		OpenSearchURL:  os.Getenv("OPENSEARCH_URL"),
-		JWTSecret:      jwtSecret,
-		CurrentPatch:   "16.21",
-		DDragonVersion: "16.21.1",
+		Port:               port,
+		Environment:        env,
+		RiotAPIKey:         riotKey,
+		GovernorMode:       govMode,
+		DatabaseURL:        dbURL,
+		RedisURL:           redisURL,
+		OpenSearchURL:      os.Getenv("OPENSEARCH_URL"),
+		JWTSecret:          jwtSecret,
+		CurrentPatch:       "16.21",
+		DDragonVersion:     "16.21.1",
+		AllowedOrigins:     os.Getenv("CORS_ALLOWED_ORIGINS"),
+		AdminEmail:         adminEmail,
+		AdminPassword:      adminPassword,
+		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		SentryDSN:          os.Getenv("SENTRY_DSN"),
 	}
 }
 
