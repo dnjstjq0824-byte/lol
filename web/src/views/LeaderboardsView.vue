@@ -16,7 +16,7 @@
     <!-- Leaderboard Table -->
     <div class="bg-rift-card border border-rift-border rounded-xl shadow-xl overflow-x-auto">
       <table class="w-full text-left text-xs">
-        <thead class="bg-[#161F30] border-b border-rift-border text-gray-400 font-bold uppercase tracking-wider">
+        <thead class="bg-[#101A30] border-b border-rift-border text-gray-400 font-bold uppercase tracking-wider">
           <tr>
             <th class="py-3 px-4">순위</th>
             <th class="py-3 px-4">소환사</th>
@@ -33,7 +33,7 @@
             @click="$router.push(`/summoners/${selectedRegion}/${e.gameName}-${e.tagLine}`)"
             class="hover:bg-[#1E293B]/70 cursor-pointer transition"
           >
-            <td class="py-3 px-4 font-black text-cyan-400">{{ e.rank }}</td>
+            <td class="py-3 px-4 font-black text-rift-gold">{{ e.rank }}</td>
             <td class="py-3 px-4 font-bold text-white flex items-center space-x-2">
               <span>{{ e.gameName }}</span>
               <span class="text-gray-500 font-normal">#{{ e.tagLine }}</span>

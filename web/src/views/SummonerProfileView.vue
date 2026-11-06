@@ -4,7 +4,7 @@
     <div class="bg-rift-card border border-rift-border rounded-xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
       <div class="flex items-center space-x-5">
         <div class="relative">
-          <div class="w-20 h-20 rounded-2xl bg-gray-800 border-2 border-cyan-500/40 flex items-center justify-center font-bold text-2xl text-cyan-400">
+          <div class="w-20 h-20 rounded-2xl bg-gray-800 border-2 border-rift-gold/40 flex items-center justify-center font-bold text-2xl text-rift-gold">
             {{ (gameName || 'H').charAt(0) }}
           </div>
           <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-gray-900 border border-gray-700 text-[10px] font-bold text-gray-300">
@@ -22,7 +22,7 @@
           </div>
 
           <div class="flex items-center space-x-3 text-xs text-gray-400 mt-2">
-            <span>래더 랭킹: <strong class="text-cyan-400">{{ profile?.ladderRank || 14 }}위</strong> (상위 {{ profile?.topPercentile || 0.0035 }}%)</span>
+            <span>래더 랭킹: <strong class="text-rift-gold">{{ profile?.ladderRank || 14 }}위</strong> (상위 {{ profile?.topPercentile || 0.0035 }}%)</span>
             <span>•</span>
             <span>리전: <strong>{{ region }}</strong></span>
           </div>
@@ -39,7 +39,7 @@
         <button
           @click="refreshData"
           :disabled="isRefreshing"
-          class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold text-xs shadow-md transition"
+          class="px-4 py-2 rounded-lg bg-rift-gold hover:bg-rift-goldlight disabled:opacity-50 text-white font-semibold text-xs shadow-md transition"
         >
           {{ isRefreshing ? '전적 갱신 중...' : '전적 갱신' }}
         </button>
@@ -63,12 +63,12 @@
           <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">솔로랭크</div>
           <div v-if="loading" class="skeleton-shimmer h-16 rounded-lg"></div>
           <div v-else-if="ranked?.soloQueue" class="flex items-center space-x-4">
-            <div class="w-14 h-14 rounded-full bg-cyan-950/80 border border-cyan-800 flex items-center justify-center font-black text-cyan-400 text-lg">
+            <div class="w-14 h-14 rounded-full bg-rift-gold/10 border border-rift-golddeep flex items-center justify-center font-black text-rift-gold text-lg">
               {{ (ranked.soloQueue.tier || 'U').slice(0, 2) }}
             </div>
             <div>
               <div class="text-lg font-black text-white">{{ ranked.soloQueue.tier }} {{ ranked.soloQueue.division }}</div>
-              <div class="text-xs font-semibold text-cyan-400">{{ ranked.soloQueue.lp.toLocaleString() }} LP</div>
+              <div class="text-xs font-semibold text-rift-gold">{{ ranked.soloQueue.lp.toLocaleString() }} LP</div>
               <div class="text-xs text-gray-400 mt-0.5">
                 {{ ranked.soloQueue.wins }}승 {{ ranked.soloQueue.losses }}패 (승률 {{ ranked.soloQueue.winRate.toFixed(0) }}%)
               </div>
@@ -108,7 +108,7 @@
               class="py-2.5 flex items-center justify-between text-xs"
             >
               <div class="flex items-center space-x-2.5">
-                <span class="relative w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center font-bold text-cyan-400 text-xs overflow-hidden">
+                <span class="relative w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center font-bold text-rift-gold text-xs overflow-hidden">
                   {{ (c.championName || 'A').charAt(0) }}
                   <img
                     v-if="c.championKey"
@@ -147,7 +147,7 @@
                 {{ d.gameName }}
               </div>
               <div class="text-right">
-                <span class="text-cyan-400 font-bold">{{ d.winRate.toFixed(0) }}%</span>
+                <span class="text-rift-gold font-bold">{{ d.winRate.toFixed(0) }}%</span>
                 <span class="text-gray-400 text-[10px] ml-1.5">{{ d.wins }}승 {{ d.losses }}패</span>
               </div>
             </div>
@@ -163,7 +163,7 @@
             <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">최근 20경기 요약</div>
             <div class="text-lg font-black text-white mt-1">
               {{ matchHistory.summary20Games.wins }}승 {{ matchHistory.summary20Games.losses }}패
-              <span class="text-cyan-400 ml-2">({{ matchHistory.summary20Games.winRate.toFixed(1) }}%)</span>
+              <span class="text-rift-gold ml-2">({{ matchHistory.summary20Games.winRate.toFixed(1) }}%)</span>
             </div>
           </div>
 
@@ -175,12 +175,12 @@
                 <span class="text-rose-400">{{ matchHistory.summary20Games.avgDeaths.toFixed(1) }}</span> /
                 {{ matchHistory.summary20Games.avgAssists.toFixed(1) }}
               </div>
-              <div class="text-cyan-400 font-semibold">{{ matchHistory.summary20Games.avgKda.toFixed(2) }}:1</div>
+              <div class="text-rift-gold font-semibold">{{ matchHistory.summary20Games.avgKda.toFixed(2) }}:1</div>
             </div>
 
             <div>
               <div class="text-gray-500">킬관여율</div>
-              <div class="font-bold text-indigo-400 text-sm">{{ matchHistory.summary20Games.avgKp }}%</div>
+              <div class="font-bold text-rift-gold text-sm">{{ matchHistory.summary20Games.avgKp }}%</div>
             </div>
           </div>
         </div>
@@ -212,7 +212,7 @@
               <!-- Champion & Result & Spells / Runes -->
               <div class="flex items-center space-x-3">
                 <div class="relative">
-                  <div class="w-12 h-12 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center font-bold text-sm text-cyan-300 overflow-hidden">
+                  <div class="w-12 h-12 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center font-bold text-sm text-rift-goldlight overflow-hidden">
                     <span>{{ (getPlayer(m)?.championName || 'A').charAt(0) }}</span>
                     <img
                       v-if="getPlayer(m)?.championKey"
@@ -276,7 +276,7 @@
                   {{ getPlayer(m)?.kills }} / <span class="text-rose-400">{{ getPlayer(m)?.deaths }}</span> / {{ getPlayer(m)?.assists }}
                 </div>
                 <div class="text-gray-400 text-[11px]">KDA {{ getPlayer(m)?.kda }}</div>
-                <div class="text-cyan-400 font-semibold text-[10px]">Rift Score {{ getPlayer(m)?.riftScore }} (MVP)</div>
+                <div class="text-rift-gold font-semibold text-[10px]">Rift Score {{ getPlayer(m)?.riftScore }} (MVP)</div>
               </div>
 
               <!-- CS & Items with ItemPopover -->
@@ -292,7 +292,7 @@
                     :key="idx"
                     :itemId="it"
                   >
-                    <div class="w-6 h-6 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-[9px] text-cyan-300 hover:border-cyan-400 transition cursor-pointer">
+                    <div class="w-6 h-6 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-[9px] text-rift-goldlight hover:border-rift-gold transition cursor-pointer">
                       {{ it ? (it >= 3000 ? it % 100 : it) : '' }}
                     </div>
                   </ItemPopover>
@@ -305,18 +305,18 @@
             </div>
 
             <!-- Expandable Accordion with Sub-tabs -->
-            <div v-if="expandedMatchId === m.matchId" class="border-t border-rift-border/80 bg-[#0A0E18] p-4 space-y-4">
+            <div v-if="expandedMatchId === m.matchId" class="border-t border-rift-border/80 bg-[#0A1020] p-4 space-y-4">
               <!-- Sub-tab Navigation (OP.GG Parity) -->
               <div class="flex items-center space-x-2 border-b border-rift-border/60 pb-2 text-xs">
                 <button
                   @click.stop="activeSubTab = 'scoreboard'"
-                  :class="['px-3 py-1.5 rounded-lg font-bold transition', activeSubTab === 'scoreboard' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white']"
+                  :class="['px-3 py-1.5 rounded-lg font-bold transition', activeSubTab === 'scoreboard' ? 'bg-rift-gold text-[#14100A]' : 'text-gray-400 hover:text-white']"
                 >
                   팀 스코어보드 & 빌드
                 </button>
                 <button
                   @click.stop="activeSubTab = 'timeline'"
-                  :class="['px-3 py-1.5 rounded-lg font-bold transition', activeSubTab === 'timeline' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white']"
+                  :class="['px-3 py-1.5 rounded-lg font-bold transition', activeSubTab === 'timeline' ? 'bg-rift-gold text-[#14100A]' : 'text-gray-400 hover:text-white']"
                 >
                   골드 격차 및 타임라인
                 </button>
@@ -337,7 +337,7 @@
                       class="flex items-center justify-between text-xs p-1.5 rounded bg-gray-900/50 hover:bg-gray-900 transition"
                     >
                       <div class="flex items-center space-x-2 w-36">
-                        <span class="w-6 h-6 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-cyan-400">
+                        <span class="w-6 h-6 rounded bg-gray-800 flex items-center justify-center text-[10px] font-bold text-rift-gold">
                           {{ (p.championName || 'A').charAt(0) }}
                         </span>
                         <div class="flex space-x-0.5">

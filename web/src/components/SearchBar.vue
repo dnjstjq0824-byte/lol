@@ -11,7 +11,7 @@
         @focus="isFocused = true"
         type="text"
         placeholder="소환사명 + #태그 (예: Hide on bush#KR1, Faker#KR1)"
-        class="w-full bg-[#111827] border-2 border-rift-border focus:border-cyan-500 rounded-xl px-5 py-4 pl-12 text-base text-white placeholder-gray-500 focus:outline-none transition shadow-2xl"
+        class="w-full bg-[#0D1424] border-2 border-rift-border focus:border-rift-gold rounded-xl px-5 py-4 pl-12 text-base text-white placeholder-gray-500 focus:outline-none transition shadow-2xl"
       />
       <!-- Search Icon -->
       <div class="absolute left-4 text-gray-400">
@@ -23,7 +23,7 @@
       <!-- Action Button -->
       <button
         @click="submitSearch"
-        class="absolute right-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-semibold text-sm text-white transition shadow-md"
+        class="absolute right-2 px-4 py-2 rounded-lg bg-rift-gold hover:bg-rift-goldlight font-semibold text-sm text-white transition shadow-md"
       >
         .GG 검색
       </button>
@@ -32,7 +32,7 @@
     <!-- Autocomplete Dropdown -->
     <div
       v-if="isFocused && (suggestions.summoners.length > 0 || suggestions.champions.length > 0)"
-      class="absolute left-0 right-0 top-full mt-2 bg-[#111827] border border-rift-border rounded-xl shadow-2xl z-50 overflow-hidden divide-y divide-rift-border"
+      class="absolute left-0 right-0 top-full mt-2 bg-[#0D1424] border border-rift-border rounded-xl shadow-2xl z-50 overflow-hidden divide-y divide-rift-border"
     >
       <!-- Summoner Results -->
       <div v-if="suggestions.summoners.length > 0" class="p-2">
@@ -41,10 +41,10 @@
           v-for="(s, idx) in suggestions.summoners"
           :key="s.puuid"
           @mousedown="selectSummoner(s)"
-          :class="['flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition', selectedIndex === idx ? 'bg-[#1F2937] border-l-4 border-cyan-400' : 'hover:bg-[#1F2937]/70']"
+          :class="['flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition', selectedIndex === idx ? 'bg-[#1E2A45] border-l-4 border-rift-gold' : 'hover:bg-[#1E2A45]/70']"
         >
           <div class="flex items-center space-x-3">
-            <span class="w-8 h-8 rounded-full bg-cyan-950 border border-cyan-800 text-cyan-400 flex items-center justify-center font-bold text-xs">
+            <span class="w-8 h-8 rounded-full bg-rift-gold/10 border border-rift-golddeep text-rift-gold flex items-center justify-center font-bold text-xs">
               {{ s.gameName.charAt(0) }}
             </span>
             <div>
@@ -52,7 +52,7 @@
               <span class="text-gray-400 text-xs ml-1.5">#{{ s.tagLine }}</span>
             </div>
           </div>
-          <span class="text-xs px-2 py-0.5 rounded bg-[#1F2937] text-gray-400">{{ s.region }}</span>
+          <span class="text-xs px-2 py-0.5 rounded bg-[#1E2A45] text-gray-400">{{ s.region }}</span>
         </div>
       </div>
 
@@ -63,7 +63,7 @@
           v-for="(c, idx) in suggestions.champions"
           :key="c.championId"
           @mousedown="selectChampion(c)"
-          :class="['flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition', selectedIndex === (suggestions.summoners.length + idx) ? 'bg-[#1F2937] border-l-4 border-cyan-400' : 'hover:bg-[#1F2937]/70']"
+          :class="['flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition', selectedIndex === (suggestions.summoners.length + idx) ? 'bg-[#1E2A45] border-l-4 border-rift-gold' : 'hover:bg-[#1E2A45]/70']"
         >
           <div class="flex items-center space-x-3">
             <span class="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-300">
@@ -74,7 +74,7 @@
               <span class="text-gray-400 text-xs ml-1.5">{{ c.title }}</span>
             </div>
           </div>
-          <span class="text-xs text-cyan-400">빌드 분석 &rarr;</span>
+          <span class="text-xs text-rift-gold">빌드 분석 &rarr;</span>
         </div>
       </div>
     </div>

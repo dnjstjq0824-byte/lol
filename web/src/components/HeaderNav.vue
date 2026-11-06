@@ -1,13 +1,13 @@
 <template>
-  <header class="border-b border-rift-border bg-[#0B0F19]/90 backdrop-blur sticky top-0 z-50">
+  <header class="border-b border-rift-border bg-[#070B14]/95 backdrop-blur sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
       <!-- Brand & Patch -->
       <div class="flex items-center space-x-4 sm:space-x-6 shrink-0">
-        <router-link to="/" class="flex items-center space-x-2 text-xl font-black tracking-tight text-white hover:text-rift-accent transition">
-          <span class="w-8 h-8 rounded bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-cyan-500/20">RS</span>
-          <span class="bg-gradient-to-r from-white via-gray-100 to-gray-400 bg-clip-text text-transparent">BN RiftStats</span>
+        <router-link to="/" class="flex items-center space-x-2.5 text-xl font-black tracking-tight text-white transition">
+          <span class="w-8 h-8 rounded-md bg-rift-gold flex items-center justify-center text-sm font-black text-[#14100A]">RS</span>
+          <span>BN RiftStats</span>
         </router-link>
-        <span class="hidden xl:inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 whitespace-nowrap">
+        <span class="hidden xl:inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rift-gold/10 text-rift-goldlight border border-rift-golddeep whitespace-nowrap">
           Patch 16.21
         </span>
 
@@ -32,7 +32,7 @@
           ★<span class="hidden min-[400px]:inline"> 즐겨찾기</span>
         </router-link>
         <template v-if="!auth.isAuthenticated">
-          <router-link to="/login" class="text-xs px-2.5 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold transition">
+          <router-link to="/login" class="text-xs px-2.5 py-1.5 rounded bg-rift-gold hover:bg-rift-goldlight text-[#14100A] font-bold transition">
             로그인
           </router-link>
         </template>

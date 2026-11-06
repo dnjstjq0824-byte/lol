@@ -4,7 +4,7 @@
     <div class="bg-rift-card border border-rift-border rounded-xl p-6 shadow-xl space-y-3">
       <div class="flex items-center space-x-3">
         <h1 class="text-2xl font-black text-white">멀티서치 (Multi-Search)</h1>
-        <span class="px-2 py-0.5 rounded text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">로비 스카우팅</span>
+        <span class="px-2 py-0.5 rounded text-xs font-bold bg-rift-gold/10 text-rift-goldlight border border-rift-golddeep">로비 스카우팅</span>
       </div>
       <p class="text-xs text-gray-400">
         챔피언 선택 창의 채팅창 텍스트 전체를 복사하여 붙여넣거나, 소환사명#태그를 줄바꿈 또는 쉼표(,)로 구분하여 최대 5명까지 한 번에 분석합니다.
@@ -21,7 +21,7 @@ ShowMaker#KR1
 Canyon#KR1
 Viper#KR1
 (또는 롤 클라이언트 챔피언 선택 창의 '...님이 로비에 참가하셨습니다' 문구를 그대로 복사해 붙여넣으세요)"
-          class="w-full bg-[#0F172A] border border-rift-border focus:border-cyan-500 rounded-lg p-3 text-sm text-white placeholder-gray-500 focus:outline-none transition resize-none font-mono"
+          class="w-full bg-[#0F172A] border border-rift-border focus:border-rift-gold rounded-lg p-3 text-sm text-white placeholder-gray-500 focus:outline-none transition resize-none font-mono"
         ></textarea>
 
         <div class="flex items-center justify-between">
@@ -34,7 +34,7 @@ Viper#KR1
           <button
             @click="executeMultiSearch"
             :disabled="loading"
-            class="px-5 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold text-sm shadow-lg transition"
+            class="px-5 py-2 rounded-lg bg-rift-gold hover:bg-rift-goldlight disabled:opacity-50 text-white font-bold text-sm shadow-lg transition"
           >
             {{ loading ? '로비 분석 중...' : '소환사 일괄 분석' }}
           </button>
@@ -47,18 +47,18 @@ Viper#KR1
       <div
         v-for="m in result.members"
         :key="m.account.puuid"
-        class="bg-rift-card border border-rift-border rounded-xl p-4 shadow-xl flex flex-col justify-between space-y-4 hover:border-cyan-500/50 transition"
+        class="bg-rift-card border border-rift-border rounded-xl p-4 shadow-xl flex flex-col justify-between space-y-4 hover:border-rift-gold/50 transition"
       >
         <!-- Member Header -->
         <div>
           <div class="flex items-center space-x-2">
-            <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center font-bold text-xs text-cyan-400">
+            <span class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center font-bold text-xs text-rift-gold">
               {{ m.account.gameName.charAt(0) }}
             </span>
             <div class="overflow-hidden">
               <router-link
                 :to="`/summoners/${result.region}/${m.account.gameName}-${m.account.tagLine}`"
-                class="font-black text-sm text-white hover:text-cyan-400 truncate block transition"
+                class="font-black text-sm text-white hover:text-rift-gold truncate block transition"
               >
                 {{ m.account.gameName }}
               </router-link>
@@ -79,7 +79,7 @@ Viper#KR1
 
           <!-- Tendency Badge -->
           <div class="mt-2.5">
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800 inline-block">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rift-gold/10 text-rift-goldlight border border-rift-golddeep inline-block">
               {{ m.playTendency }}
             </span>
           </div>

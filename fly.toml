@@ -1,0 +1,33 @@
+# Fly.io backend deploy config: Go API + Postgres + Redis.
+# Usage:
+#   fly launch --no-deploy        # first time (creates app + region)
+#   fly pg create --name riftstats-db
+#   fly redis create --name riftstats-redis
+#   fly pg attach riftstats-db
+#   fly redis attach riftstats-redis
+#   fly secrets set JWT_SECRET=... RIOT_API_KEY=... ADMIN_PASSWORD=... \
+#     FRONTEND_BASE_URL=https://lol.dnjstjqppk.workers.dev \
+#     CORS_ALLOWED_ORIGINS=https://lol.dnjstjqppk.workers.dev
+#   fly deploy
+app = "riftstats-api"
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  ENV = "production"
+  GOVERNOR_MODE = "DEV_PROTOTYPE_MODE"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512

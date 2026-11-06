@@ -7,7 +7,7 @@
       </p>
 
       <!-- Riot Policy Alert Banner -->
-      <div class="mt-4 p-4 rounded-lg bg-cyan-950/40 border border-cyan-800 text-xs text-cyan-200 leading-relaxed">
+      <div class="mt-4 p-4 rounded-lg bg-rift-gold/10 border border-rift-golddeep text-xs text-rift-goldlight leading-relaxed">
         <strong>Riot Games 공식 개발자 정책 준수:</strong>
         아레나 모드(Queue 1700/1710)에서는 게임 내 다양성 보호를 위해 증강체 및 아레나 전용 아이템의 승률 집계 표시가 라이엇 공식 규정에 의해 전면 차단되어 있습니다.
       </div>
@@ -22,7 +22,7 @@
           </div>
           <div>
             <div class="font-bold text-white text-sm">{{ c.championKey }}</div>
-            <div class="text-xs text-cyan-400 font-semibold">픽률 {{ c.pickRate }}%</div>
+            <div class="text-xs text-rift-gold font-semibold">픽률 {{ c.pickRate }}%</div>
           </div>
         </div>
         <span class="px-2 py-0.5 rounded text-xs font-black bg-rose-950 text-rose-400 border border-rose-800">

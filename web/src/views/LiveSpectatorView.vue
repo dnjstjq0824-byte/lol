@@ -16,7 +16,7 @@
         <button
           @click="refreshLiveStatus"
           :disabled="isRefreshing"
-          class="px-3.5 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5"
+          class="px-3.5 py-2 rounded-lg bg-rift-gold hover:bg-rift-goldlight disabled:opacity-50 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5"
         >
           <span :class="{'animate-spin': isRefreshing}">🔄</span>
           <span>{{ isRefreshing ? '동기화 중...' : '실시간 새로고침' }}</span>
@@ -61,7 +61,7 @@
     <!-- Teams Grid (Blue vs Red) -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Blue Team -->
-      <div class="bg-gradient-to-b from-blue-950/30 to-rift-card border border-blue-900/60 rounded-xl p-5 shadow-lg space-y-3">
+      <div class="bg-rift-card border border-blue-900/60 rounded-xl p-5 shadow-card space-y-3">
         <div class="text-sm font-black text-blue-400 uppercase tracking-wider pb-2 border-b border-blue-900/40 flex items-center justify-between">
           <span>블루 팀 (Blue Team)</span>
           <span class="text-xs text-gray-400">평균 티어: 마스터 ~ 챌린저</span>
@@ -75,10 +75,10 @@
           <!-- Champion & Spell / Rune -->
           <div class="flex items-center space-x-3">
             <div class="relative">
-              <span class="w-10 h-10 rounded-lg bg-gray-800 border border-blue-800 flex items-center justify-center font-bold text-sm text-cyan-300">
+              <span class="w-10 h-10 rounded-lg bg-gray-800 border border-blue-800 flex items-center justify-center font-bold text-sm text-rift-goldlight">
                 {{ p.championName?.charAt(0) || p.gameName.charAt(0) }}
               </span>
-              <span class="absolute -bottom-1 -right-1 px-1 rounded bg-black/90 text-[8px] font-bold text-cyan-400">
+              <span class="absolute -bottom-1 -right-1 px-1 rounded bg-black/90 text-[8px] font-bold text-rift-gold">
                 {{ positions[idx] }}
               </span>
             </div>
@@ -108,7 +108,7 @@
             <div>
               <router-link
                 :to="`/summoners/KR/${p.gameName}-${p.tagLine}`"
-                class="font-bold text-white text-xs hover:text-cyan-400 hover:underline transition truncate max-w-[120px] block"
+                class="font-bold text-white text-xs hover:text-rift-gold hover:underline transition truncate max-w-[120px] block"
               >
                 {{ p.gameName }}
               </router-link>
@@ -120,14 +120,14 @@
 
           <!-- Rank & LP -->
           <div class="text-right text-xs">
-            <div class="font-bold text-cyan-400">{{ p.currentTier }}</div>
+            <div class="font-bold text-rift-gold">{{ p.currentTier }}</div>
             <div class="text-[10px] text-gray-400">{{ p.currentLp }} LP</div>
           </div>
         </div>
       </div>
 
       <!-- Red Team -->
-      <div class="bg-gradient-to-b from-rose-950/30 to-rift-card border border-rose-900/60 rounded-xl p-5 shadow-lg space-y-3">
+      <div class="bg-rift-card border border-rose-900/60 rounded-xl p-5 shadow-card space-y-3">
         <div class="text-sm font-black text-rose-400 uppercase tracking-wider pb-2 border-b border-rose-900/40 flex items-center justify-between">
           <span>레드 팀 (Red Team)</span>
           <span class="text-xs text-gray-400">평균 티어: 그랜드마스터 ~ 챌린저</span>

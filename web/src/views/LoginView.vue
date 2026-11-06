@@ -10,13 +10,13 @@
       <div class="grid grid-cols-2 gap-1 bg-[#0B0F19] border border-rift-border p-1 rounded-lg text-sm font-bold">
         <button
           @click="mode = 'login'"
-          :class="['py-2 rounded transition', mode === 'login' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white']"
+          :class="['py-2 rounded transition', mode === 'login' ? 'bg-rift-gold text-[#14100A]' : 'text-gray-400 hover:text-white']"
         >
           로그인
         </button>
         <button
           @click="mode = 'register'"
-          :class="['py-2 rounded transition', mode === 'register' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white']"
+          :class="['py-2 rounded transition', mode === 'register' ? 'bg-rift-gold text-[#14100A]' : 'text-gray-400 hover:text-white']"
         >
           회원가입
         </button>
@@ -35,7 +35,7 @@
             type="text"
             autocomplete="nickname"
             placeholder="예: RiftMaster"
-            class="w-full bg-[#0B0F19] border border-rift-border focus:border-cyan-500 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition"
+            class="w-full bg-[#0B0F19] border border-rift-border focus:border-rift-gold rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition"
           />
         </div>
 
@@ -48,7 +48,7 @@
             required
             autocomplete="email"
             placeholder="you@example.com"
-            class="w-full bg-[#0B0F19] border border-rift-border focus:border-cyan-500 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition"
+            class="w-full bg-[#0B0F19] border border-rift-border focus:border-rift-gold rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition"
           />
         </div>
 
@@ -64,14 +64,14 @@
             :minlength="mode === 'register' ? 8 : undefined"
             autocomplete="current-password"
             placeholder="••••••••"
-            class="w-full bg-[#0B0F19] border border-rift-border focus:border-cyan-500 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition"
+            class="w-full bg-[#0B0F19] border border-rift-border focus:border-rift-gold rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition"
           />
         </div>
 
         <button
           type="submit"
           :disabled="busy"
-          class="w-full py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold text-sm shadow-md transition"
+          class="w-full py-2.5 rounded-lg bg-rift-gold hover:bg-rift-goldlight disabled:opacity-50 text-white font-bold text-sm shadow-md transition"
         >
           {{ busy ? '처리 중...' : mode === 'login' ? '로그인' : '계정 만들기' }}
         </button>
@@ -91,8 +91,8 @@
       </a>
 
       <p class="text-[11px] text-gray-500 text-center leading-relaxed">
-        계속하면 <router-link to="/terms" class="text-cyan-400 hover:underline">이용약관</router-link>과
-        <router-link to="/privacy" class="text-cyan-400 hover:underline">개인정보처리방침</router-link>에 동의합니다.
+        계속하면 <router-link to="/terms" class="text-rift-gold hover:underline">이용약관</router-link>과
+        <router-link to="/privacy" class="text-rift-gold hover:underline">개인정보처리방침</router-link>에 동의합니다.
       </p>
     </div>
   </div>

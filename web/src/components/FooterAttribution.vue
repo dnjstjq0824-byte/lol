@@ -1,5 +1,5 @@
 <template>
-  <footer class="border-t border-rift-border bg-[#090D16] text-gray-400 py-10 mt-16">
+  <footer class="border-t border-rift-border bg-[#070B14] text-gray-400 py-10 mt-16">
     <div class="max-w-7xl mx-auto px-4 text-xs space-y-4">
       <!-- Legal Attribution Boilerplate per Riot Games Developer Policy -->
       <div class="p-4 rounded-lg bg-rift-card/60 border border-rift-border leading-relaxed">
@@ -20,7 +20,7 @@
         <div class="flex items-center space-x-4">
           <router-link to="/terms" class="hover:text-gray-300 transition">이용약관</router-link>
           <router-link to="/privacy" class="hover:text-gray-300 transition">개인정보처리방침</router-link>
-          <span class="text-cyan-400">P95 &lt; 80ms</span>
+          <span class="text-rift-gold">P95 &lt; 80ms</span>
           <span>CLS = 0.00</span>
           <span>Zero MMR Generation</span>
         </div>

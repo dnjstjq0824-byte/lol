@@ -4,11 +4,11 @@
     <!-- Floating Popover Card -->
     <div
       v-if="show && item"
-      class="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-950/95 border border-cyan-500/50 rounded-lg shadow-2xl backdrop-blur-md text-left pointer-events-none transition-all duration-150 animate-fadeIn"
+      class="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-950/95 border border-rift-gold/50 rounded-lg shadow-2xl backdrop-blur-md text-left pointer-events-none transition-all duration-150 animate-fadeIn"
     >
       <div class="flex items-start justify-between border-b border-gray-800 pb-2 mb-2">
         <div>
-          <div class="font-black text-cyan-400 text-xs">{{ item.krName }}</div>
+          <div class="font-black text-rift-gold text-xs">{{ item.krName }}</div>
           <div class="text-[10px] text-gray-400">{{ item.name }}</div>
         </div>
         <div class="text-right">
@@ -29,7 +29,7 @@
 
       <!-- Passive -->
       <div v-if="item.passive" class="text-[10px] text-gray-300 leading-relaxed mb-1.5">
-        <span class="text-cyan-300 font-bold">고유 지속 효과:</span> {{ item.passive }}
+        <span class="text-rift-goldlight font-bold">고유 지속 효과:</span> {{ item.passive }}
       </div>
 
       <!-- Active -->

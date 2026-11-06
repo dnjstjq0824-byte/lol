@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-[#0B0F19] text-[#F9FAFB]">
+  <div class="min-h-screen flex flex-col bg-[#070B14] text-[#F4F1EA]">
     <HeaderNav />
     <main class="flex-1">
       <router-view />

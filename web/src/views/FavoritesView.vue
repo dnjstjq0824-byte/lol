@@ -20,7 +20,7 @@
       <div class="text-3xl mb-2">☆</div>
       <div class="text-base font-bold text-white">아직 즐겨찾기가 없습니다</div>
       <p class="text-xs text-gray-400 mt-1">소환사 프로필의 ☆ 버튼을 눌러 즐겨찾기에 추가하세요.</p>
-      <router-link to="/" class="inline-block mt-4 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition">
+      <router-link to="/" class="inline-block mt-4 px-4 py-2 rounded-lg bg-rift-gold hover:bg-rift-goldlight text-[#14100A] font-bold text-sm transition">
         소환사 검색하기
       </router-link>
     </div>
@@ -29,13 +29,13 @@
       <div
         v-for="fav in favorites"
         :key="fav.favoriteId"
-        class="bg-rift-card border border-rift-border hover:border-cyan-500/50 rounded-xl p-5 transition shadow-lg flex items-center justify-between"
+        class="bg-rift-card border border-rift-border hover:border-rift-gold/50 rounded-xl p-5 transition shadow-lg flex items-center justify-between"
       >
         <div
           @click="openFavorite(fav)"
           class="flex items-center space-x-3 cursor-pointer min-w-0"
         >
-          <div class="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center font-bold text-cyan-400 shrink-0 overflow-hidden">
+          <div class="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center font-bold text-rift-gold shrink-0 overflow-hidden">
             <span>{{ favoriteLabel(fav).charAt(0) }}</span>
           </div>
           <div class="min-w-0">

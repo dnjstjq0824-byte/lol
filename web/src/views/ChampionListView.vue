@@ -14,7 +14,7 @@
         <select
           v-model="selectedBracket"
           @change="loadTierList"
-          class="bg-rift-card border border-rift-border rounded-lg px-3 py-1.5 text-xs font-bold text-gray-200 focus:outline-none focus:border-cyan-500"
+          class="bg-rift-card border border-rift-border rounded-lg px-3 py-1.5 text-xs font-bold text-gray-200 focus:outline-none focus:border-rift-gold"
         >
           <option value="EMERALD_PLUS">에메랄드 +</option>
           <option value="DIAMOND_PLUS">다이아몬드 +</option>
@@ -28,7 +28,7 @@
             v-for="role in roles"
             :key="role.id"
             @click="selectedRole = role.id"
-            :class="['px-3 py-1.5 rounded transition', selectedRole === role.id ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white']"
+            :class="['px-3 py-1.5 rounded transition', selectedRole === role.id ? 'bg-rift-gold text-[#14100A]' : 'text-gray-400 hover:text-white']"
           >
             {{ role.name }}
           </button>
@@ -50,7 +50,7 @@
         />
       </div>
       <div class="text-[11px] text-gray-500">
-        총 <strong class="text-cyan-400">{{ filteredAndSortedEntries.length }}</strong>개 챔피언 데이터 표시 중
+        총 <strong class="text-rift-gold">{{ filteredAndSortedEntries.length }}</strong>개 챔피언 데이터 표시 중
       </div>
     </div>
 
@@ -73,7 +73,7 @@
     <!-- Tier Table -->
     <div v-else class="bg-rift-card border border-rift-border rounded-xl shadow-xl overflow-x-auto">
       <table class="w-full text-left text-xs">
-        <thead class="bg-[#161F30] border-b border-rift-border text-gray-400 font-bold uppercase tracking-wider select-none">
+        <thead class="bg-[#101A30] border-b border-rift-border text-gray-400 font-bold uppercase tracking-wider select-none">
           <tr>
             <th @click="toggleSort('rank')" class="py-3 px-4 cursor-pointer hover:text-white">
               순위 <span class="text-[10px]">{{ sortKey === 'rank' ? (sortAsc ? '▲' : '▼') : '' }}</span>
@@ -104,7 +104,7 @@
           >
             <td class="py-3.5 px-4 font-bold text-gray-400">{{ entry.rank }}</td>
             <td class="py-3.5 px-4 font-bold text-white flex items-center space-x-3">
-              <span class="relative w-8 h-8 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-xs font-bold text-cyan-400 overflow-hidden">
+              <span class="relative w-8 h-8 rounded bg-gray-800 border border-gray-700 flex items-center justify-center text-xs font-bold text-rift-gold overflow-hidden">
                 {{ entry.championName.charAt(0) }}
                 <img
                   :src="championIconUrl(entry.championKey)"
@@ -123,7 +123,7 @@
               <span :class="[
                 'px-2 py-0.5 rounded text-[10px] font-black',
                 entry.tierGrade === 'OP' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
-                entry.tierGrade === '1' ? 'bg-cyan-950 text-cyan-400 border border-cyan-800' :
+                entry.tierGrade === '1' ? 'bg-rift-gold/10 text-rift-gold border border-rift-golddeep' :
                 'bg-gray-800 text-gray-300'
               ]">
                 {{ entry.tierGrade === 'OP' ? 'OP' : entry.tierGrade + ' Tier' }}

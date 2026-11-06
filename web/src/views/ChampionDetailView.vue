@@ -3,13 +3,13 @@
     <!-- Header -->
     <div class="bg-rift-card border border-rift-border rounded-xl p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div class="flex items-center space-x-5">
-        <div class="w-16 h-16 rounded-xl bg-gray-800 border-2 border-cyan-500/50 flex items-center justify-center font-black text-2xl text-cyan-400">
+        <div class="w-16 h-16 rounded-xl bg-gray-800 border-2 border-rift-gold/50 flex items-center justify-center font-black text-2xl text-rift-gold">
           {{ championKey.charAt(0) }}
         </div>
         <div>
           <div class="flex items-center space-x-3">
             <h1 class="text-2xl font-black text-white">{{ build?.championKey || championKey }}</h1>
-            <span class="px-2 py-0.5 rounded text-xs font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
+            <span class="px-2 py-0.5 rounded text-xs font-bold bg-rift-gold/10 text-rift-goldlight border border-rift-golddeep">
               {{ currentPosition }}
             </span>
             <span class="text-xs text-gray-400">패치 16.21 추천 빌드</span>
@@ -26,7 +26,7 @@
           v-for="pos in ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY']"
           :key="pos"
           @click="changePosition(pos)"
-          :class="['px-3 py-1.5 rounded transition', currentPosition === pos ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white']"
+          :class="['px-3 py-1.5 rounded transition', currentPosition === pos ? 'bg-rift-gold text-[#14100A]' : 'text-gray-400 hover:text-white']"
         >
           {{ pos }}
         </button>
@@ -38,7 +38,7 @@
       <div class="flex items-center justify-between border-b border-rift-border pb-3">
         <h2 class="text-base font-bold text-white flex items-center space-x-3">
           <span>스킬 빌드 및 1~18레벨 마스터 순서</span>
-          <span class="text-xs font-bold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+          <span class="text-xs font-bold px-2 py-0.5 rounded bg-rift-gold/10 text-rift-goldlight border border-rift-golddeep">
             {{ build?.skillOrders?.[0]?.skillPath?.join(' > ') || 'Q > W > E' }}
           </span>
         </h2>
@@ -58,11 +58,11 @@
           </thead>
           <tbody class="divide-y divide-rift-border/30">
             <tr v-for="sg in (build?.skillGrid || defaultSkillGrid)" :key="sg.skillKey">
-              <td class="py-2 px-2 text-left font-black text-cyan-400">{{ sg.skillKey }}</td>
+              <td class="py-2 px-2 text-left font-black text-rift-gold">{{ sg.skillKey }}</td>
               <td v-for="(val, idx) in sg.levels" :key="idx" class="py-2 px-1.5">
                 <span
                   v-if="val === 1"
-                  class="w-5 h-5 mx-auto rounded bg-cyan-600 text-white flex items-center justify-center font-bold text-[10px] shadow"
+                  class="w-5 h-5 mx-auto rounded bg-rift-gold text-[#14100A] flex items-center justify-center font-bold text-[10px] shadow"
                 >
                   {{ sg.skillKey }}
                 </span>
@@ -80,12 +80,12 @@
       <div class="bg-rift-card border border-rift-border rounded-xl p-5 shadow-lg space-y-4">
         <h2 class="text-base font-bold text-white flex items-center justify-between border-b border-rift-border pb-3">
           <span>추천 룬 세팅 (Riot Policy: 2가지 이상 비교)</span>
-          <span class="text-xs text-cyan-400 font-semibold">95% CI 검증</span>
+          <span class="text-xs text-rift-gold font-semibold">95% CI 검증</span>
         </h2>
 
         <div v-for="(r, idx) in build?.runes" :key="idx" class="p-4 rounded-lg bg-[#0F172A] border border-rift-border space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-cyan-400">루트 {{ idx + 1 }}</span>
+            <span class="text-xs font-bold text-rift-gold">루트 {{ idx + 1 }}</span>
             <div class="text-xs space-x-3">
               <span class="text-gray-400">픽률 <strong class="text-white">{{ r.pickRate }}%</strong></span>
               <span class="text-gray-400">승률 <strong class="text-blue-400">{{ r.winRate }}%</strong></span>
@@ -112,14 +112,14 @@
       <div class="bg-rift-card border border-rift-border rounded-xl p-5 shadow-lg space-y-4">
         <h2 class="text-base font-bold text-white flex items-center justify-between border-b border-rift-border pb-3">
           <span>코어 3아이템 빌드</span>
-          <span class="text-xs text-cyan-400 font-semibold">표본 신뢰도 HIGH</span>
+          <span class="text-xs text-rift-gold font-semibold">표본 신뢰도 HIGH</span>
         </h2>
 
         <div v-for="(cb, idx) in build?.coreBuilds" :key="idx" class="p-4 rounded-lg bg-[#0F172A] border border-rift-border space-y-2">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
               <ItemPopover v-for="id in cb.itemIds" :key="id" :itemId="id">
-                <span class="px-2.5 py-1 rounded bg-gray-800 text-xs font-bold text-cyan-300 border border-gray-700 hover:border-cyan-400 transition cursor-pointer">
+                <span class="px-2.5 py-1 rounded bg-gray-800 text-xs font-bold text-rift-goldlight border border-gray-700 hover:border-rift-gold transition cursor-pointer">
                   아이템 {{ id }}
                 </span>
               </ItemPopover>
@@ -169,7 +169,7 @@
           <div v-for="s in synergies?.synergies" :key="s.allyChampionId" class="p-3 rounded-lg bg-[#0F172A] border border-rift-border flex items-center justify-between">
             <div>
               <div class="font-bold text-white text-xs">{{ s.allyChampionName }} <span class="text-gray-500 text-[10px]">({{ s.allyPosition }})</span></div>
-              <div class="text-[11px] text-cyan-400 mt-0.5">
+              <div class="text-[11px] text-rift-gold mt-0.5">
                 시너지 보너스: +{{ s.synergyDelta }}%
               </div>
             </div>

@@ -4,7 +4,7 @@
       <div>
         <h1 class="text-2xl font-black text-white flex items-center space-x-2">
           <span>관리자 운영 콘솔 (Admin Operations Console)</span>
-          <span class="px-2 py-0.5 rounded text-xs font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">RBAC</span>
+          <span class="px-2 py-0.5 rounded text-xs font-bold bg-rift-gold/10 text-rift-gold border border-rift-golddeep">RBAC</span>
         </h1>
         <p class="text-xs text-gray-400 mt-1">
           Riot API 레이트 리밋 텔레메트리 • 수집 큐 제어 • 데이터 신선도 모니터링
@@ -40,14 +40,14 @@
 
       <div class="p-4 rounded-xl bg-rift-card border border-rift-border shadow-md">
         <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">수집 큐 대기 (Queue Depth)</div>
-        <div class="text-base font-black text-cyan-400 mt-1">
+        <div class="text-base font-black text-rift-gold mt-1">
           {{ overview?.ingestionQueueDepth ?? '...' }}건
         </div>
       </div>
 
       <div class="p-4 rounded-xl bg-rift-card border border-rift-border shadow-md">
         <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Riot Gateway</div>
-        <div class="text-base font-black text-indigo-400 mt-1">
+        <div class="text-base font-black text-rift-gold mt-1">
           {{ health?.riotGateway || '...' }}
         </div>
       </div>
@@ -60,7 +60,7 @@
       </h2>
 
       <table class="w-full text-left text-xs">
-        <thead class="bg-[#161F30] border-b border-rift-border text-gray-400 font-bold uppercase tracking-wider">
+        <thead class="bg-[#101A30] border-b border-rift-border text-gray-400 font-bold uppercase tracking-wider">
           <tr>
             <th class="py-2.5 px-3">플랫폼 ID</th>
             <th class="py-2.5 px-3">앱 허용량 (App Limit)</th>
@@ -75,7 +75,7 @@
           <tr v-for="b in overview?.rateLimitBuckets" :key="b.platformId">
             <td class="py-2.5 px-3 font-bold text-white">{{ b.platformId }}</td>
             <td class="py-2.5 px-3">{{ b.appLimit }}</td>
-            <td class="py-2.5 px-3 font-bold text-cyan-400">{{ b.remaining }} / {{ b.capacity }}</td>
+            <td class="py-2.5 px-3 font-bold text-rift-gold">{{ b.remaining }} / {{ b.capacity }}</td>
             <td class="py-2.5 px-3">{{ b.p0Reserved }}</td>
             <td class="py-2.5 px-3">{{ b.p1Reserved }}</td>
             <td class="py-2.5 px-3">{{ b.p2Reserved }}</td>
