@@ -1,5 +1,15 @@
 const TOKEN_KEY = 'riftstats_token'
 
+// Split-deploy support: when the SPA is hosted apart from the API (e.g.
+// Cloudflare Workers + container host), bake the API origin in at build time:
+//   VITE_API_BASE_URL=https://api.example.com vite build
+// Empty (default) = same-origin, served by the Go server itself.
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, '') || ''
+
+export function apiUrl(path: string): string {
+  return `${API_BASE}${path}`
+}
+
 export function getToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_KEY)
@@ -29,7 +39,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   }
   const token = getToken()
   if (token) headers['Authorization'] = `Bearer ${token}`
-  return fetch(path, { ...init, headers })
+  return fetch(apiUrl(path), { ...init, headers })
 }
 
 export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<T> {

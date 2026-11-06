@@ -115,6 +115,7 @@ Viper#KR1
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { apiUrl } from '@/lib/api'
 
 const selectedRegion = ref('KR')
 const rawInput = ref('Hide on bush#KR1\nChovy#KR1\nShowMaker#KR1\nCanyon#KR1\nViper#KR1')
@@ -124,7 +125,7 @@ const result = ref<any>(null)
 const executeMultiSearch = async () => {
   loading.value = true
   try {
-    const res = await fetch('/api/v1/search/multi-search', {
+    const res = await fetch(apiUrl('/api/v1/search/multi-search'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

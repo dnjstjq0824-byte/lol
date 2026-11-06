@@ -164,7 +164,11 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, http.StatusInternalServerError, "Token Generation Failed", err.Error())
 		return
 	}
-	http.Redirect(w, r, "/oauth/callback?token="+url.QueryEscape(token), http.StatusFound)
+	callback := "/oauth/callback?token=" + url.QueryEscape(token)
+	if h.cfg.FrontendBaseURL != "" {
+		callback = h.cfg.FrontendBaseURL + callback
+	}
+	http.Redirect(w, r, callback, http.StatusFound)
 }
 
 // validateFavoriteRequest rejects malformed bookmark payloads early.

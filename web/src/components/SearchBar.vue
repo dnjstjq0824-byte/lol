@@ -84,6 +84,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
+import { apiUrl } from '@/lib/api'
 
 const router = useRouter()
 const query = ref('')
@@ -99,7 +100,7 @@ const handleInput = async () => {
     return
   }
   try {
-    const res = await fetch(`/api/v1/search/autocomplete?q=${encodeURIComponent(query.value)}`)
+    const res = await fetch(apiUrl(`/api/v1/search/autocomplete?q=${encodeURIComponent(query.value)}`))
     if (res.ok) {
       const data = await res.json()
       suggestions.value = data

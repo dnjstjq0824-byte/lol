@@ -1,9 +1,17 @@
 name = "lol"
 compatibility_date = "2024-10-01"
+main = "worker.js"
 
 [build]
 command = "npm --prefix web run build"
 
 [assets]
 directory = "./web/dist"
+binding = "ASSETS"
 not_found_handling = "single-page-application"
+
+# Production API origin (external container host). Override in the
+# Cloudflare dashboard (Worker > Settings > Variables) or at deploy time:
+#   wrangler deploy --var API_ORIGIN:https://riftstats-api.fly.dev
+[vars]
+API_ORIGIN = ""

@@ -28,6 +28,8 @@ type Config struct {
 	GoogleRedirectURL  string
 	// Sentry error tracking (empty = disabled).
 	SentryDSN string
+	// Public SPA origin for split deploys (empty = same-origin redirects).
+	FrontendBaseURL string
 }
 
 func loadDotEnv() {
@@ -119,6 +121,7 @@ func Load() *Config {
 		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 		GoogleRedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
 		SentryDSN:          os.Getenv("SENTRY_DSN"),
+		FrontendBaseURL:    strings.TrimRight(os.Getenv("FRONTEND_BASE_URL"), "/"),
 	}
 }
 

@@ -83,7 +83,7 @@
       </div>
 
       <a
-        href="/api/v1/auth/oauth/google"
+        :href="apiUrl('/api/v1/auth/oauth/google')"
         class="flex items-center justify-center space-x-2 w-full py-2.5 rounded-lg bg-white hover:bg-gray-100 text-gray-800 font-bold text-sm transition"
       >
         <span class="font-black text-base">G</span>
@@ -102,7 +102,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { isApiError } from '@/lib/api'
+import { isApiError, apiUrl } from '@/lib/api'
 
 const route = useRoute()
 const router = useRouter()

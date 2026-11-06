@@ -35,12 +35,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { apiUrl } from '@/lib/api'
 
 const topChamps = ref<any[]>([])
 
 onMounted(async () => {
   try {
-    const res = await fetch('/api/v1/modes/arena/stats')
+    const res = await fetch(apiUrl('/api/v1/modes/arena/stats'))
     if (res.ok) {
       const data = await res.json()
       topChamps.value = data.topChampions || []

@@ -110,9 +110,9 @@ type matchV5Objective struct {
 }
 
 type matchV5Team struct {
-	TeamID     int `json:"teamId"`
-	Win        bool `json:"win"`
-	Bans       []struct {
+	TeamID int  `json:"teamId"`
+	Win    bool `json:"win"`
+	Bans   []struct {
 		ChampionID int `json:"championId"`
 	} `json:"bans"`
 	Objectives map[string]matchV5Objective `json:"objectives"`
@@ -127,26 +127,26 @@ type matchV5PerkStyle struct {
 }
 
 type matchV5Participant struct {
-	Puuid                     string `json:"puuid"`
-	RiotIDGameName            string `json:"riotIdGameName"`
-	RiotIDTagline             string `json:"riotIdTagline"`
-	ChampionID                int    `json:"championId"`
-	ChampionName              string `json:"championName"`
-	TeamPosition              string `json:"teamPosition"`
-	TeamID                    int    `json:"teamId"`
-	Kills                     int    `json:"kills"`
-	Deaths                    int    `json:"deaths"`
-	Assists                   int    `json:"assists"`
-	Win                       bool   `json:"win"`
-	TotalMinionsKilled        int    `json:"totalMinionsKilled"`
-	NeutralMinionsKilled      int    `json:"neutralMinionsKilled"`
-	VisionScore               int    `json:"visionScore"`
-	Perks                     struct {
+	Puuid                string `json:"puuid"`
+	RiotIDGameName       string `json:"riotIdGameName"`
+	RiotIDTagline        string `json:"riotIdTagline"`
+	ChampionID           int    `json:"championId"`
+	ChampionName         string `json:"championName"`
+	TeamPosition         string `json:"teamPosition"`
+	TeamID               int    `json:"teamId"`
+	Kills                int    `json:"kills"`
+	Deaths               int    `json:"deaths"`
+	Assists              int    `json:"assists"`
+	Win                  bool   `json:"win"`
+	TotalMinionsKilled   int    `json:"totalMinionsKilled"`
+	NeutralMinionsKilled int    `json:"neutralMinionsKilled"`
+	VisionScore          int    `json:"visionScore"`
+	Perks                struct {
 		Styles []matchV5PerkStyle `json:"styles"`
 	} `json:"perks"`
-	Summoner1ID               int `json:"summoner1Id"`
-	Summoner2ID               int `json:"summoner2Id"`
-	TotalDamageDealtToChamps  int `json:"totalDamageDealtToChampions"`
+	Summoner1ID              int `json:"summoner1Id"`
+	Summoner2ID              int `json:"summoner2Id"`
+	TotalDamageDealtToChamps int `json:"totalDamageDealtToChampions"`
 }
 
 // matchV5ParticipantJSON extends the participant DTO with the seven item slots.
@@ -467,7 +467,7 @@ type liveLadderEntry struct {
 }
 
 type liveLeagueList struct {
-	Tier    string           `json:"tier"`
+	Tier    string            `json:"tier"`
 	Entries []liveLadderEntry `json:"entries"`
 }
 
@@ -519,15 +519,15 @@ func (c *Client) GetChallengerLadder(ctx context.Context, region, queue string) 
 			name = "소환사 " + fmt.Sprintf("%d", i+1)
 		}
 		entries = append(entries, domain.LeaderboardEntry{
-			Rank:      i + 1,
-			Puuid:     e.Puuid,
-			GameName:  name,
-			TagLine:   reg.DefaultTagLine,
-			Tier:      list.Tier,
-			LP:        e.LeaguePoints,
-			Wins:      e.Wins,
-			Losses:    e.Losses,
-			WinRate:   wr,
+			Rank:     i + 1,
+			Puuid:    e.Puuid,
+			GameName: name,
+			TagLine:  reg.DefaultTagLine,
+			Tier:     list.Tier,
+			LP:       e.LeaguePoints,
+			Wins:     e.Wins,
+			Losses:   e.Losses,
+			WinRate:  wr,
 		})
 	}
 	resp := &domain.LeaderboardResponse{

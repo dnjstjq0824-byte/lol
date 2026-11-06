@@ -91,6 +91,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
+import { apiUrl } from '@/lib/api'
 
 const props = withDefaults(
   defineProps<{
@@ -121,7 +122,7 @@ const liveFrames = ref<TimelineFrame[] | null>(null)
 onMounted(async () => {
   if (!props.matchId) return
   try {
-    const res = await fetch(`/api/v1/matches/${props.region}/${encodeURIComponent(props.matchId)}/timeline`)
+    const res = await fetch(apiUrl(`/api/v1/matches/${props.region}/${encodeURIComponent(props.matchId)}/timeline`))
     if (res.ok) {
       const data = await res.json()
       if (Array.isArray(data.frames) && data.frames.length > 0) liveFrames.value = data.frames

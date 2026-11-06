@@ -51,13 +51,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { apiUrl } from '@/lib/api'
 
 const selectedRegion = ref('KR')
 const entries = ref<any[]>([])
 
 const loadLeaderboard = async () => {
   try {
-    const res = await fetch(`/api/v1/leaderboards/${selectedRegion.value}?queue=420`)
+    const res = await fetch(apiUrl(`/api/v1/leaderboards/${selectedRegion.value}?queue=420`))
     if (res.ok) {
       const data = await res.json()
       entries.value = data.entries

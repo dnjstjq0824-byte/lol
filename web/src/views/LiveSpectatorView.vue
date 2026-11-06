@@ -198,6 +198,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { apiUrl } from '@/lib/api'
 import SpellPopover from '@/components/SpellPopover.vue'
 import RunePopover from '@/components/RunePopover.vue'
 
@@ -246,7 +247,7 @@ const redTeamList = computed(() => {
 const fetchLive = async () => {
   loadError.value = ''
   try {
-    const res = await fetch(`/api/v1/spectator/${targetRegion}/by-puuid/${encodeURIComponent(targetPuuid)}`)
+    const res = await fetch(apiUrl(`/api/v1/spectator/${targetRegion}/by-puuid/${encodeURIComponent(targetPuuid)}`))
     if (res.ok) {
       game.value = await res.json()
       if (game.value?.gameLengthSec) {

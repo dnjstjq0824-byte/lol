@@ -149,6 +149,7 @@
 import { ref, computed, onMounted } from 'vue'
 import type { ChampionTierEntry } from '@/types'
 import { championIconUrl } from '@/lib/ddragon'
+import { apiUrl } from '@/lib/api'
 
 const entries = ref<ChampionTierEntry[]>([])
 const loading = ref(true)
@@ -182,7 +183,7 @@ const loadTierList = async () => {
   loading.value = true
   loadError.value = ''
   try {
-    const res = await fetch(`/api/v1/champions/tier-list?region=GLOBAL&tier=${selectedBracket.value}&patch=16.21`)
+    const res = await fetch(apiUrl(`/api/v1/champions/tier-list?region=GLOBAL&tier=${selectedBracket.value}&patch=16.21`))
     if (res.ok) {
       const data = await res.json()
       entries.value = data.entries || []

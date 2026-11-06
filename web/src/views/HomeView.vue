@@ -101,13 +101,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import SearchBar from '@/components/SearchBar.vue'
+import { apiUrl } from '@/lib/api'
 import type { ChampionTierEntry } from '@/types'
 
 const opChamps = ref<ChampionTierEntry[]>([])
 
 onMounted(async () => {
   try {
-    const res = await fetch('/api/v1/champions/tier-list?region=GLOBAL&tier=EMERALD_PLUS&patch=16.21')
+    const res = await fetch(apiUrl('/api/v1/champions/tier-list?region=GLOBAL&tier=EMERALD_PLUS&patch=16.21'))
     if (res.ok) {
       const data = await res.json()
       opChamps.value = data.entries.slice(0, 5)

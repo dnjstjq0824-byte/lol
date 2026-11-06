@@ -187,6 +187,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { apiUrl } from '@/lib/api'
 import ItemPopover from '@/components/ItemPopover.vue'
 import RunePopover from '@/components/RunePopover.vue'
 
@@ -207,9 +208,9 @@ const defaultSkillGrid = [
 const loadData = async () => {
   try {
     const [bRes, mRes, sRes] = await Promise.all([
-      fetch(`/api/v1/champions/${championKey.value}/builds?position=${currentPosition.value}`),
-      fetch(`/api/v1/champions/${championKey.value}/counters?position=${currentPosition.value}`),
-      fetch(`/api/v1/champions/${championKey.value}/synergies?position=${currentPosition.value}`),
+      fetch(apiUrl(`/api/v1/champions/${championKey.value}/builds?position=${currentPosition.value}`)),
+      fetch(apiUrl(`/api/v1/champions/${championKey.value}/counters?position=${currentPosition.value}`)),
+      fetch(apiUrl(`/api/v1/champions/${championKey.value}/synergies?position=${currentPosition.value}`)),
     ])
     if (bRes.ok) build.value = await bRes.json()
     if (mRes.ok) matchups.value = await mRes.json()
